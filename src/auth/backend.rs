@@ -36,6 +36,7 @@ pub struct Credentials {
     pub remember_me: Option<bool>,
 }
 
+#[async_trait::async_trait]
 impl AuthnBackend for AuthBackend {
     type User = User;
     type Credentials = Credentials;
@@ -50,10 +51,7 @@ impl AuthnBackend for AuthBackend {
         let user = AuthQueries::get_user_by_username(&self.db, &creds.username).await?;
 
         if let Some(user) = user {
-            let is_valid = match verify_password(&creds.password, &user.password_hash) {
-                Ok(valid) => valid,
-                Err(_) => false,
-            };
+            let is_valid = verify_password(&creds.password, &user.password_hash).unwrap_or(false);
 
             if is_valid {
                 return Ok(Some(user));
