@@ -51,8 +51,8 @@ struct AddVeinForm {
 async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
 
-    let database_url = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "mysql://testuser:testpassword@localhost:3306/testdb".to_string());
+    let database_url =
+        std::env::var("DATABASE_URL").expect("DATABASE_URL environment variable is not set.");
 
     let pool = MySqlPool::connect(&database_url).await?;
     println!("Connected to the database at {}", database_url);
