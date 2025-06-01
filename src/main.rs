@@ -15,6 +15,10 @@ use handlers::{
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    dotenv::dotenv().ok();
+    let port = std::env::var("PORT").unwrap_or_else(|_| "24528".to_string());
+    let addr = format!("0.0.0.0:{}", port);
+
     let pool = initialize_database().await?;
     let state = AppState { db_pool: pool };
 
@@ -50,8 +54,8 @@ async fn main() -> anyhow::Result<()> {
         .route("/add", post(add_vein_handler))
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:24528").await?;
-    println!("Server running on http://localhost:24528");
+    let listener = tokio::net::TcpListener::bind(&addr).await?;
+    println!("Server running on http://{}", addr);
 
     axum::serve(listener, app).await?;
 
