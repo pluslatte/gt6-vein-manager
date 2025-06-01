@@ -170,7 +170,7 @@ fn generate_veins_table(veins: Vec<Vein>, query: &SearchQuery) -> String {
                 "revoke",
                 "confirmed",
                 "視認解除",
-                None,
+                Some("この鉱脈の視認済みマークを解除しますか？"),
             )
         } else {
             button_builder(
@@ -192,7 +192,7 @@ fn generate_veins_table(veins: Vec<Vein>, query: &SearchQuery) -> String {
                 "revoke",
                 "depleted",
                 "枯渇解除",
-                None,
+                Some("この鉱脈の枯渇マークを解除しますか？"),
             )
         } else {
             button_builder(
@@ -212,7 +212,7 @@ fn generate_veins_table(veins: Vec<Vein>, query: &SearchQuery) -> String {
                 "revoke",
                 "revoked",
                 "復元",
-                Some("この鉱脈を復元しますか？"),
+                Some("この鉱脈の登録を復元しますか？"),
             )
         } else {
             button_builder(
