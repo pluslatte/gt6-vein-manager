@@ -318,6 +318,82 @@ tr:hover {
     outline-offset: 2px;
 }
 
+/* アクションボタン */
+.action-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: center;
+}
+
+.action-btn {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    min-width: 90px;
+    transition: all 0.2s ease;
+}
+
+.action-btn.confirm {
+    background-color: var(--green);
+    color: var(--bg0);
+}
+
+.action-btn.confirm:hover {
+    background-color: var(--aqua);
+    transform: translateY(-1px);
+}
+
+.action-btn.confirmed {
+    background-color: var(--bg3);
+    color: var(--fg2);
+    cursor: not-allowed;
+}
+
+.action-btn.deplete {
+    background-color: var(--yellow);
+    color: var(--bg0);
+}
+
+.action-btn.deplete:hover {
+    background-color: var(--orange);
+    transform: translateY(-1px);
+}
+
+.action-btn.depleted {
+    background-color: var(--bg3);
+    color: var(--fg2);
+    cursor: not-allowed;
+}
+
+.action-btn.revoke {
+    background-color: var(--red);
+    color: var(--fg0);
+}
+
+.action-btn.revoke:hover {
+    background-color: #fb4934;
+    transform: translateY(-1px);
+}
+
+/* アクションボタンのモバイル対応 */
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 3px;
+    }
+    
+    .action-btn {
+        font-size: 10px;
+        padding: 3px 6px;
+        min-width: 70px;
+    }
+}
+
 /* アニメーション */
 .container {
     animation: fadeIn 0.3s ease-in;

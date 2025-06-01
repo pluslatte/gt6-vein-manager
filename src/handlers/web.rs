@@ -1,10 +1,12 @@
+use crate::database::{
+    AppState, insert_vein, insert_vein_confirmation, insert_vein_depletion, search_veins,
+};
+use crate::models::{AddVeinForm, SearchQuery, Vein};
 use axum::{
     extract::{Form, Query, State},
     response::Html,
 };
 use uuid::Uuid;
-use crate::database::{AppState, search_veins, insert_vein, insert_vein_confirmation, insert_vein_depletion};
-use crate::models::{Vein, SearchQuery, AddVeinForm};
 
 pub async fn search_veins_handler(
     State(state): State<AppState>,
@@ -19,7 +21,10 @@ pub async fn search_veins_handler(
     }
 }
 
-pub async fn add_vein_handler(State(state): State<AppState>, Form(form): Form<AddVeinForm>) -> Html<String> {
+pub async fn add_vein_handler(
+    State(state): State<AppState>,
+    Form(form): Form<AddVeinForm>,
+) -> Html<String> {
     let id = Uuid::new_v4().to_string();
 
     // 座標の解析
@@ -37,7 +42,17 @@ pub async fn add_vein_handler(State(state): State<AppState>, Form(form): Form<Ad
     };
 
     // 鉱脈の挿入
-    if let Err(e) = insert_vein(&state.db_pool, &id, &form.name, x_coord, y_coord, z_coord, &form.notes).await {
+    if let Err(e) = insert_vein(
+        &state.db_pool,
+        &id,
+        &form.name,
+        x_coord,
+        y_coord,
+        z_coord,
+        &form.notes,
+    )
+    .await
+    {
         eprintln!("Database error: {}", e);
         return Html(generate_database_error_html());
     }
@@ -115,6 +130,7 @@ fn generate_veins_table(veins: Vec<Vein>) -> String {
                 <th>視認済み</th>
                 <th>枯渇済み</th>
                 <th>登録日時</th>
+                <th>操作</th>
             </tr>
         </thead>
         <tbody>
@@ -122,6 +138,29 @@ fn generate_veins_table(veins: Vec<Vein>) -> String {
     );
 
     for vein in veins {
+        let confirmation_button = if vein.confirmed {
+            "<button class=\"action-btn confirmed\" disabled>視認済み</button>".to_string()
+        } else {
+            format!(
+                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/confirm\"><button type=\"submit\" class=\"action-btn confirm\">視認済みにする</button></form>",
+                vein.id
+            )
+        };
+
+        let depletion_button = if vein.depleted {
+            "<button class=\"action-btn depleted\" disabled>枯渇済み</button>".to_string()
+        } else {
+            format!(
+                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/deplete\"><button type=\"submit\" class=\"action-btn deplete\">枯渇済みにする</button></form>",
+                vein.id
+            )
+        };
+
+        let revocation_button = format!(
+            "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/revoke\"><button type=\"submit\" class=\"action-btn revoke\" onclick=\"return confirm('この鉱脈を取り下げますか？')\">取り下げ</button></form>",
+            vein.id
+        );
+
         html.push_str(&format!(
             r#"
             <tr>
@@ -133,6 +172,11 @@ fn generate_veins_table(veins: Vec<Vein>) -> String {
                 <td>{}</td>
                 <td>{}</td>
                 <td>{}</td>
+                <td class="action-buttons">
+                    {}
+                    {}
+                    {}
+                </td>
             </tr>
             "#,
             vein.name,
@@ -143,6 +187,9 @@ fn generate_veins_table(veins: Vec<Vein>) -> String {
             vein.confirmed_symbol(),
             vein.depleted_symbol(),
             vein.format_created_at(),
+            confirmation_button,
+            depletion_button,
+            revocation_button,
         ));
     }
 
@@ -191,7 +238,8 @@ fn generate_database_error_html() -> String {
         <a href="/">戻る</a>
     </body>
     </html>
-    "#.to_string()
+    "#
+    .to_string()
 }
 
 fn generate_success_html(form: &AddVeinForm, id: &str) -> String {
