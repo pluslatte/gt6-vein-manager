@@ -8,8 +8,8 @@ use axum::{
 };
 use database::{AppState, initialize_database};
 use handlers::{
-    add_vein_handler, search_veins_handler, serve_css, serve_index, vein_comfirmation_set,
-    vein_confirmation_revoke, vein_depletion_revoke, vein_depletion_set, vein_revocation_revoke,
+    add_vein_handler, search_veins_handler, serve_css, serve_index, vein_confirmation_revoke,
+    vein_confirmation_set, vein_depletion_revoke, vein_depletion_set, vein_revocation_revoke,
     vein_revocation_set,
 };
 
@@ -21,7 +21,7 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .route(
             "/api/veins/{vein_id}/confirmation/set",
-            post(vein_comfirmation_set),
+            post(vein_confirmation_set),
         )
         .route(
             "/api/veins/{vein_id}/confirmation/revoke",

@@ -26,68 +26,42 @@ impl VeinButtonForm {
     }
 }
 
-pub async fn vein_comfirmation_set(
-    State(state): State<AppState>,
-    Path(vein_id): Path<String>,
-    Form(form): Form<VeinButtonForm>,
+async fn handle_vein_action(
+    state: AppState,
+    vein_id: String,
+    form: VeinButtonForm,
+    action: &str,
+    status: bool,
 ) -> Result<Redirect, StatusCode> {
-    match insert_vein_confirmation(&state.db_pool, &vein_id, true).await {
+    let result = match action {
+        "confirmation" => insert_vein_confirmation(&state.db_pool, &vein_id, status).await,
+        "depletion" => insert_vein_depletion(&state.db_pool, &vein_id, status).await,
+        "revocation" => insert_vein_revocation(&state.db_pool, &vein_id, status).await,
+        _ => return Err(StatusCode::BAD_REQUEST),
+    };
+
+    match result {
         Ok(_) => Ok(Redirect::to(&form.build_redirect_url())),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
-pub async fn vein_confirmation_revoke(
-    State(state): State<AppState>,
-    Path(vein_id): Path<String>,
-    Form(form): Form<VeinButtonForm>,
-) -> Result<Redirect, StatusCode> {
-    match insert_vein_confirmation(&state.db_pool, &vein_id, false).await {
-        Ok(_) => Ok(Redirect::to(&form.build_redirect_url())),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
+macro_rules! define_vein_action {
+    ($func_name:ident, $action:expr, $status:expr) => {
+        pub async fn $func_name(
+            State(state): State<AppState>,
+            Path(vein_id): Path<String>,
+            Form(form): Form<VeinButtonForm>,
+        ) -> Result<Redirect, StatusCode> {
+            handle_vein_action(state, vein_id, form, $action, $status).await
+        }
+    };
 }
 
-pub async fn vein_depletion_set(
-    State(state): State<AppState>,
-    Path(vein_id): Path<String>,
-    Form(form): Form<VeinButtonForm>,
-) -> Result<Redirect, StatusCode> {
-    match insert_vein_depletion(&state.db_pool, &vein_id, true).await {
-        Ok(_) => Ok(Redirect::to(&form.build_redirect_url())),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
-}
-
-pub async fn vein_depletion_revoke(
-    State(state): State<AppState>,
-    Path(vein_id): Path<String>,
-    Form(form): Form<VeinButtonForm>,
-) -> Result<Redirect, StatusCode> {
-    match insert_vein_depletion(&state.db_pool, &vein_id, false).await {
-        Ok(_) => Ok(Redirect::to(&form.build_redirect_url())),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
-}
-
-pub async fn vein_revocation_set(
-    State(state): State<AppState>,
-    Path(vein_id): Path<String>,
-    Form(form): Form<VeinButtonForm>,
-) -> Result<Redirect, StatusCode> {
-    match insert_vein_revocation(&state.db_pool, &vein_id, true).await {
-        Ok(_) => Ok(Redirect::to(&form.build_redirect_url())),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
-}
-
-pub async fn vein_revocation_revoke(
-    State(state): State<AppState>,
-    Path(vein_id): Path<String>,
-    Form(form): Form<VeinButtonForm>,
-) -> Result<Redirect, StatusCode> {
-    match insert_vein_revocation(&state.db_pool, &vein_id, false).await {
-        Ok(_) => Ok(Redirect::to(&form.build_redirect_url())),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
-}
+// 定義されたマクロを使って関数を生成
+define_vein_action!(vein_confirmation_set, "confirmation", true);
+define_vein_action!(vein_confirmation_revoke, "confirmation", false);
+define_vein_action!(vein_depletion_set, "depletion", true);
+define_vein_action!(vein_depletion_revoke, "depletion", false);
+define_vein_action!(vein_revocation_set, "revocation", true);
+define_vein_action!(vein_revocation_revoke, "revocation", false);
