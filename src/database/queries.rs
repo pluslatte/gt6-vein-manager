@@ -6,13 +6,37 @@ use anyhow::Result;
 const BASE_QUERY: &str = r#"
     SELECT
         v.id, v.name, v.x_coord, v.y_coord, v.z_coord, v.notes, v.created_at,
-        CASE WHEN vc.confirmed IS NOT NULL THEN TRUE ELSE FALSE END AS confirmed,
-        CASE WHEN vd.depleted IS NOT NULL THEN TRUE ELSE FALSE END AS depleted,
-        CASE WHEN vr.revoked IS NOT NULL THEN TRUE ELSE FALSE END AS revoked
+        CASE WHEN vc.confirmed IS NOT NULL THEN vc.confirmed ELSE FALSE END AS confirmed,
+        CASE WHEN vd.depleted IS NOT NULL THEN vd.depleted ELSE FALSE END AS depleted,
+        CASE WHEN vr.revoked IS NOT NULL THEN vr.revoked ELSE FALSE END AS revoked
     FROM veins v
-        LEFT JOIN vein_confirmations vc ON v.id = vc.vein_id AND vc.confirmed = TRUE
-        LEFT JOIN vein_depletions vd ON v.id = vd.vein_id AND vd.depleted = TRUE
-        LEFT JOIN vein_revokations vr ON v.id = vr.vein_id AND vr.revoked = TRUE
+        LEFT JOIN (
+            SELECT DISTINCT vein_id, confirmed
+            FROM vein_confirmations vc1
+            WHERE vc1.created_at = (
+                SELECT MAX(vc2.created_at)
+                FROM vein_confirmations vc2
+                WHERE vc2.vein_id = vc1.vein_id
+            )
+        ) vc ON v.id = vc.vein_id
+        LEFT JOIN (
+            SELECT DISTINCT vein_id, depleted
+            FROM vein_depletions vd1
+            WHERE vd1.created_at = (
+                SELECT MAX(vd2.created_at)
+                FROM vein_depletions vd2
+                WHERE vd2.vein_id = vd1.vein_id
+            )
+        ) vd ON v.id = vd.vein_id
+        LEFT JOIN (
+            SELECT DISTINCT vein_id, revoked
+            FROM vein_revokations vr1
+            WHERE vr1.created_at = (
+                SELECT MAX(vr2.created_at)
+                FROM vein_revokations vr2
+                WHERE vr2.vein_id = vr1.vein_id
+            )
+        ) vr ON v.id = vr.vein_id
     WHERE
         (vr.revoked IS NULL OR vr.revoked = FALSE)
 "#;
