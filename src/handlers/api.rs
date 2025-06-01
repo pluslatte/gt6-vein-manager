@@ -26,18 +26,24 @@ impl VeinButtonForm {
     }
 }
 
+#[derive(Debug)]
+pub enum Action {
+    Confirmation,
+    Depletion,
+    Revocation,
+}
+
 async fn handle_vein_action(
     state: AppState,
     vein_id: String,
     form: VeinButtonForm,
-    action: &str,
+    action: Action,
     status: bool,
 ) -> Result<Redirect, StatusCode> {
     let result = match action {
-        "confirmation" => insert_vein_confirmation(&state.db_pool, &vein_id, status).await,
-        "depletion" => insert_vein_depletion(&state.db_pool, &vein_id, status).await,
-        "revocation" => insert_vein_revocation(&state.db_pool, &vein_id, status).await,
-        _ => return Err(StatusCode::BAD_REQUEST),
+        Action::Confirmation => insert_vein_confirmation(&state.db_pool, &vein_id, status).await,
+        Action::Depletion => insert_vein_depletion(&state.db_pool, &vein_id, status).await,
+        Action::Revocation => insert_vein_revocation(&state.db_pool, &vein_id, status).await,
     };
 
     match result {
@@ -59,9 +65,9 @@ macro_rules! define_vein_action {
 }
 
 // 定義されたマクロを使って関数を生成
-define_vein_action!(vein_confirmation_set, "confirmation", true);
-define_vein_action!(vein_confirmation_revoke, "confirmation", false);
-define_vein_action!(vein_depletion_set, "depletion", true);
-define_vein_action!(vein_depletion_revoke, "depletion", false);
-define_vein_action!(vein_revocation_set, "revocation", true);
-define_vein_action!(vein_revocation_revoke, "revocation", false);
+define_vein_action!(vein_confirmation_set, Action::Confirmation, true);
+define_vein_action!(vein_confirmation_revoke, Action::Confirmation, false);
+define_vein_action!(vein_depletion_set, Action::Depletion, true);
+define_vein_action!(vein_depletion_revoke, Action::Depletion, false);
+define_vein_action!(vein_revocation_set, Action::Revocation, true);
+define_vein_action!(vein_revocation_revoke, Action::Revocation, false);
