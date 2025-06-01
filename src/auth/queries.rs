@@ -1,4 +1,4 @@
-use chrono::{DateTime, Duration, Utc};
+use chrono::{Duration, Utc};
 use sqlx::MySqlPool;
 use uuid::Uuid;
 

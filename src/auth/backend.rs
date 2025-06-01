@@ -1,6 +1,5 @@
 use axum_login::{AuthUser, AuthnBackend, UserId};
 use serde::{Deserialize, Serialize};
-use sqlx::MySqlPool;
 use uuid::Uuid;
 
 use crate::models::User;
