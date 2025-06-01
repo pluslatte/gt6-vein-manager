@@ -1,28 +1,53 @@
-/* GT6 鉱脈マネージャー CSS */
+/* GT6 鉱脈マネージャー CSS - Gruvbox テーマ */
+
+:root {
+    /* Gruvbox カラーパレット */
+    --bg0: #282828;        /* メイン背景 */
+    --bg1: #3c3836;        /* セカンダリ背景 */
+    --bg2: #504945;        /* 第三背景 */
+    --bg3: #665c54;        /* 第四背景 */
+    --fg0: #ebdbb2;        /* メイン文字色 */
+    --fg1: #d5c4a1;        /* セカンダリ文字色 */
+    --fg2: #bdae93;        /* 第三文字色 */
+    --red: #cc241d;        /* 赤 */
+    --green: #689d6a;      /* 緑 */
+    --yellow: #d79921;     /* 黄色 */
+    --blue: #458588;       /* 青 */
+    --purple: #b16286;     /* 紫 */
+    --aqua: #689d6a;       /* シアン */
+    --orange: #d65d0e;     /* オレンジ */
+    --gray: #928374;       /* グレー */
+}
 
 body {
-    font-family: Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Yu Gothic UI', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
-    background-color: #f5f5f5;
+    background-color: var(--bg0);
+    color: var(--fg0);
+    line-height: 1.6;
 }
 
 .container {
-    background-color: white;
+    background-color: var(--bg1);
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
     margin-bottom: 20px;
+    border: 1px solid var(--bg2);
 }
 
 h1 {
-    color: #333;
+    color: var(--yellow);
     text-align: center;
+    font-weight: bold;
 }
 
 h2 {
-    color: #333;
+    color: var(--orange);
+    border-bottom: 2px solid var(--bg2);
+    padding-bottom: 8px;
 }
 
 /* フォーム関連 */
@@ -48,46 +73,71 @@ h2 {
 label {
     font-weight: bold;
     margin-bottom: 5px;
+    color: var(--fg1);
 }
 
 input[type="text"], input[type="number"] {
     padding: 8px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--bg3);
     border-radius: 4px;
     width: 120px;
+    background-color: var(--bg2);
+    color: var(--fg0);
+    transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus, input[type="number"]:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 2px rgba(69, 133, 136, 0.3);
 }
 
 textarea {
     padding: 8px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--bg3);
     border-radius: 4px;
     resize: vertical;
     width: 300px;
     height: 80px;
+    background-color: var(--bg2);
+    color: var(--fg0);
+    transition: border-color 0.3s ease;
+}
+
+textarea:focus {
+    outline: none;
+    border-color: var(--blue);
+    box-shadow: 0 0 0 2px rgba(69, 133, 136, 0.3);
 }
 
 button {
     padding: 8px 16px;
-    background-color: #007bff;
-    color: white;
+    background-color: var(--blue);
+    color: var(--fg0);
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
 }
 
 button:hover {
-    background-color: #0056b3;
+    background-color: var(--aqua);
+}
+
+button:active {
+    transform: translateY(1px);
 }
 
 .required {
-    color: red;
+    color: var(--red);
 }
 
 /* 追加フォーム */
 .add-form {
     margin-top: 20px;
     padding-top: 20px;
-    border-top: 2px solid #eee;
+    border-top: 2px solid var(--bg2);
 }
 
 .add-form h2 {
@@ -99,21 +149,27 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
+    background-color: var(--bg1);
 }
 
 th, td {
-    border: 1px solid #ddd;
+    border: 1px solid var(--bg3);
     padding: 12px;
     text-align: left;
 }
 
 th {
-    background-color: #f8f9fa;
+    background-color: var(--bg2);
     font-weight: bold;
+    color: var(--yellow);
 }
 
 tr:nth-child(even) {
-    background-color: #f8f9fa;
+    background-color: var(--bg2);
+}
+
+tr:hover {
+    background-color: var(--bg3);
 }
 
 /* ナビゲーションリンク */
@@ -125,28 +181,32 @@ tr:nth-child(even) {
 .nav-links a {
     margin: 0 10px;
     padding: 8px 16px;
-    background-color: #007bff;
-    color: white;
+    background-color: var(--purple);
+    color: var(--fg0);
     text-decoration: none;
     border-radius: 4px;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
 }
 
 .nav-links a:hover {
-    background-color: #0056b3;
+    background-color: var(--orange);
 }
 
 /* 成功・エラーメッセージ */
 .success {
-    background-color: #d4edda;
-    color: #155724;
+    background-color: rgba(104, 157, 106, 0.2);
+    color: var(--green);
+    border: 1px solid var(--green);
     padding: 15px;
     border-radius: 5px;
     margin: 20px 0;
 }
 
 .error {
-    background-color: #f8d7da;
-    color: #721c24;
+    background-color: rgba(204, 36, 29, 0.2);
+    color: var(--red);
+    border: 1px solid var(--red);
     padding: 15px;
     border-radius: 5px;
     margin: 20px 0;
@@ -154,17 +214,50 @@ tr:nth-child(even) {
 
 /* エラーページ用（最小限のスタイル） */
 .error-page {
-    font-family: Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Yu Gothic UI', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
     max-width: 800px;
     margin: 0 auto;
     padding: 20px;
+    background-color: var(--bg0);
+    color: var(--fg0);
 }
 
 .result-page {
-    font-family: Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Yu Gothic UI', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
     max-width: 800px;
     margin: 0 auto;
     padding: 20px;
+    background-color: var(--bg0);
+    color: var(--fg0);
+}
+
+/* 選択範囲のスタイル */
+::selection {
+    background-color: var(--orange);
+    color: var(--bg0);
+}
+
+::-moz-selection {
+    background-color: var(--orange);
+    color: var(--bg0);
+}
+
+/* スクロールバーのスタイル */
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background-color: var(--bg1);
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--bg3);
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--gray);
 }
 
 /* レスポンシブ対応 */
@@ -189,5 +282,32 @@ tr:nth-child(even) {
     
     th, td {
         padding: 8px;
+    }
+    
+    .nav-links a {
+        display: block;
+        margin: 5px 0;
+    }
+}
+
+/* ダークテーマに適したフォーカス状態 */
+*:focus {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+}
+
+/* アニメーション */
+.container {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
