@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GT6 鉱脈マネージャー</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>GT6 鉱脈マネージャー</h1>
+
+        <!-- 検索フォーム -->
+        <form method="GET" action="/search" class="search-form">
+            <div class="form-group">
+                <label for="name">名前:</label>
+                <input type="text" id="name" name="name" placeholder="鉱脈名">
+            </div>
+            <div class="form-group">
+                <label for="x_coord">X座標:</label>
+                <input type="number" id="x_coord" name="x_coord" placeholder="X">
+            </div>
+            <div class="form-group">
+                <label for="z_coord">Z座標:</label>
+                <input type="number" id="z_coord" name="z_coord" placeholder="Z">
+            </div>
+            <div class="form-group">
+                <label for="y_coord">Y座標:</label>
+                <input type="number" id="y_coord" name="y_coord" placeholder="Y (任意)">
+            </div>
+            <button type="submit">検索</button>
+        </form>
+
+        <!-- 全て表示ボタン -->
+        <form method="GET" action="/search" style="margin-top: 10px;">
+            <button type="submit">全ての鉱脈を表示</button>
+        </form>
+    </div>
+
+    <div class="container">
+        <!-- 新規追加フォーム -->
+        <div class="add-form">
+            <h2>新しい鉱脈を追加</h2>
+            <form method="POST" action="/add">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="add_name">名前 <span class="required">*</span>:</label>
+                        <input type="text" id="add_name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="add_x">X座標 <span class="required">*</span>:</label>
+                        <input type="number" id="add_x" name="x_coord" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="add_z">Z座標 <span class="required">*</span>:</label>
+                        <input type="number" id="add_z" name="z_coord" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="add_y">Y座標:</label>
+                        <input type="number" id="add_y" name="y_coord">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="add_notes">メモ:</label>
+                        <textarea id="add_notes" name="notes" placeholder="任意のメモ書き"></textarea>
+                    </div>
+                </div>
+                <button type="submit">追加</button>
+            </form>
+        </div>
+    </div>
+</body>
+
+</html>
