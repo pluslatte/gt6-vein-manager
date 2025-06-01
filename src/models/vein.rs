@@ -34,14 +34,14 @@ impl Vein {
     }
 
     pub fn confirmed_symbol(&self) -> &'static str {
-        if self.confirmed { "✓" } else { "✗" }
+        if self.confirmed {
+            "はい"
+        } else {
+            "いいえ"
+        }
     }
 
     pub fn depleted_symbol(&self) -> &'static str {
-        if self.depleted { "✓" } else { "✗" }
-    }
-
-    pub fn revoked_symbol(&self) -> &'static str {
-        if self.revoked { "✓" } else { "✗" }
+        if self.depleted { "はい" } else { "いいえ" }
     }
 }

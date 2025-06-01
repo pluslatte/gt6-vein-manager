@@ -132,7 +132,6 @@ fn generate_veins_table(veins: Vec<Vein>, query: &SearchQuery) -> String {
                 <th>メモ</th>
                 <th>視認済み</th>
                 <th>枯渇済み</th>
-                <th>取り下げ</th>
                 <th>登録日時</th>
                 <th>操作</th>
             </tr>
@@ -239,7 +238,6 @@ fn generate_veins_table(veins: Vec<Vein>, query: &SearchQuery) -> String {
                 <td>{}</td>
                 <td>{}</td>
                 <td>{}</td>
-                <td>{}</td>
                 <td class="action-buttons">
                     {}
                     {}
@@ -255,7 +253,6 @@ fn generate_veins_table(veins: Vec<Vein>, query: &SearchQuery) -> String {
             vein.format_notes(),
             vein.confirmed_symbol(),
             vein.depleted_symbol(),
-            vein.revoked_symbol(),
             vein.format_created_at(),
             confirmation_button,
             depletion_button,
