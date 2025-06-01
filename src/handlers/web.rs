@@ -150,13 +150,16 @@ fn generate_veins_table(veins: Vec<Vein>, query: &SearchQuery) -> String {
                               button_state: &str,
                               button_text: &str,
                               confirm_msg: Option<&str>| {
-            let confirm_attr = if let Some(msg) = confirm_msg {
-                format!("onclick=\"return confirm('{}')\"", msg)
-            } else {
-                "".to_string()
+            let confirm_attr = match confirm_msg {
+                Some(msg) => format!("onclick=\"return confirm('{}')\"", msg),
+                None => "".to_string(),
             };
             format!(
-                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/{}/{}\"><button type=\"submit\" class=\"action-btn {}\" {}>{}</button></form>",
+                r#"
+                <form style="display: inline;" method="post" action="/api/veins/{}/{}/{}">
+                    <button type="submit" class="action-btn {}" {}>{}</button>
+                </form>
+                "#,
                 vein_id, target_state, target_operation, button_state, confirm_attr, button_text
             )
         };
