@@ -22,8 +22,8 @@ impl AuthQueries {
         pool: &MySqlPool,
         email: Option<&str>,
     ) -> Result<Invitation, sqlx::Error> {
-        let invitation_id = Uuid::new_v4();
-        let token = Uuid::new_v4();
+        let invitation_id = Uuid::new_v4().to_string();
+        let token = Uuid::new_v4().to_string();
         let now = Utc::now();
         // 初期招待は1週間有効
         let expires_at = now + Duration::hours(24 * 7); // 7 days
@@ -35,9 +35,9 @@ impl AuthQueries {
             VALUES (?, ?, ?, NULL, ?, ?)
             "#,
         )
-        .bind(invitation_id.to_string())
+        .bind(&invitation_id)
         .bind(email)
-        .bind(token.to_string())
+        .bind(&token)
         .bind(expires_at)
         .bind(now)
         .execute(pool)
@@ -47,7 +47,7 @@ impl AuthQueries {
             id: invitation_id,
             email: email.map(|s| s.to_string()),
             token,
-            invited_by: Uuid::nil(), // システム招待を示すためnil UUID
+            invited_by: Uuid::nil().to_string(), // システム招待を示すためnil UUID
             expires_at,
             used_at: None,
             used_by: None,
@@ -75,7 +75,7 @@ impl AuthQueries {
     /// UUIDでユーザーを取得
     pub async fn get_user_by_id(
         pool: &MySqlPool,
-        user_id: Uuid,
+        user_id: &str,
     ) -> Result<Option<User>, sqlx::Error> {
         let user =
             sqlx::query_as::<_, User>("SELECT * FROM users WHERE id = ? AND is_active = TRUE")
@@ -92,10 +92,10 @@ impl AuthQueries {
         username: &str,
         email: Option<&str>,
         password: &str,
-        invited_by: Option<Uuid>,
+        invited_by: Option<&str>,
         is_admin: bool,
     ) -> Result<User, sqlx::Error> {
-        let user_id = Uuid::new_v4();
+        let user_id = Uuid::new_v4().to_string();
         let password_hash = hash_password(password).expect("パスワードのハッシュ化に失敗しました");
         let now = Utc::now();
 
@@ -105,13 +105,13 @@ impl AuthQueries {
             VALUES (?, ?, ?, ?, ?, TRUE, ?, ?)
             "#
         )
-        .bind(user_id.to_string())
+        .bind(&user_id)
         .bind(username)
         .bind(email)
         .bind(&password_hash)
         .bind(is_admin)
         .bind(now)
-        .bind(invited_by.map(|id| id.to_string()))
+        .bind(invited_by)
         .execute(pool)
         .await?;
 
@@ -123,7 +123,7 @@ impl AuthQueries {
             is_admin,
             is_active: true,
             created_at: now,
-            invited_by,
+            invited_by: invited_by.map(|s| s.to_string()),
         };
 
         Ok(user)
@@ -133,10 +133,10 @@ impl AuthQueries {
     pub async fn create_invitation(
         pool: &MySqlPool,
         email: Option<&str>,
-        invited_by: Uuid,
+        invited_by: &str,
     ) -> Result<Invitation, sqlx::Error> {
-        let invitation_id = Uuid::new_v4();
-        let token = Uuid::new_v4();
+        let invitation_id = Uuid::new_v4().to_string();
+        let token = Uuid::new_v4().to_string();
         let now = Utc::now();
         let expires_at = now + Duration::hours(INVITATION_DURATION_HOURS);
 
@@ -146,10 +146,10 @@ impl AuthQueries {
             VALUES (?, ?, ?, ?, ?, ?)
             "#,
         )
-        .bind(invitation_id.to_string())
+        .bind(&invitation_id)
         .bind(email)
-        .bind(token.to_string())
-        .bind(invited_by.to_string())
+        .bind(&token)
+        .bind(invited_by)
         .bind(expires_at)
         .bind(now)
         .execute(pool)
@@ -159,7 +159,7 @@ impl AuthQueries {
             id: invitation_id,
             email: email.map(|s| s.to_string()),
             token,
-            invited_by,
+            invited_by: invited_by.to_string(),
             expires_at,
             used_at: None,
             used_by: None,
@@ -172,7 +172,7 @@ impl AuthQueries {
     /// 招待トークンを取得・検証
     pub async fn get_invitation_by_token(
         pool: &MySqlPool,
-        token: Uuid,
+        token: &str,
     ) -> Result<Option<Invitation>, sqlx::Error> {
         let invitation = sqlx::query_as::<_, Invitation>(
             r#"
@@ -180,7 +180,7 @@ impl AuthQueries {
             WHERE token = ? AND expires_at > NOW() AND used_at IS NULL
             "#,
         )
-        .bind(token.to_string())
+        .bind(token)
         .fetch_optional(pool)
         .await?;
 
@@ -190,15 +190,15 @@ impl AuthQueries {
     /// 招待を使用済みにマーク
     pub async fn mark_invitation_used(
         pool: &MySqlPool,
-        token: Uuid,
-        used_by: Uuid,
+        token: &str,
+        used_by: &str,
     ) -> Result<(), sqlx::Error> {
         let now = Utc::now();
 
         sqlx::query("UPDATE invitations SET used_at = ?, used_by = ? WHERE token = ?")
             .bind(now)
-            .bind(used_by.to_string())
-            .bind(token.to_string())
+            .bind(used_by)
+            .bind(token)
             .execute(pool)
             .await?;
 
@@ -208,12 +208,12 @@ impl AuthQueries {
     /// ユーザーのAPI keyを取得
     pub async fn get_user_api_keys(
         pool: &MySqlPool,
-        user_id: Uuid,
+        user_id: &str,
     ) -> Result<Vec<ApiKey>, sqlx::Error> {
         let keys = sqlx::query_as::<_, ApiKey>(
             "SELECT * FROM user_api_keys WHERE user_id = ? ORDER BY created_at DESC",
         )
-        .bind(user_id.to_string())
+        .bind(user_id)
         .fetch_all(pool)
         .await?;
 
@@ -252,12 +252,12 @@ impl AuthQueries {
     /// API keyを作成
     pub async fn create_api_key(
         pool: &MySqlPool,
-        user_id: Uuid,
+        user_id: &str,
         key_name: &str,
         key_hash: &str,
         key_prefix: &str,
     ) -> Result<ApiKey, sqlx::Error> {
-        let key_id = Uuid::new_v4();
+        let key_id = Uuid::new_v4().to_string();
         let now = Utc::now();
 
         sqlx::query(
@@ -277,7 +277,7 @@ impl AuthQueries {
 
         let api_key = ApiKey {
             id: key_id,
-            user_id,
+            user_id: user_id.to_string(),
             key_name: key_name.to_string(),
             key_hash: key_hash.to_string(),
             key_prefix: key_prefix.to_string(),
@@ -292,8 +292,8 @@ impl AuthQueries {
     /// API keyを無効化
     pub async fn revoke_api_key(
         pool: &MySqlPool,
-        key_id: Uuid,
-        user_id: Uuid,
+        key_id: &str,
+        user_id: &str,
     ) -> Result<bool, sqlx::Error> {
         let now = Utc::now();
 
@@ -301,8 +301,8 @@ impl AuthQueries {
             "UPDATE user_api_keys SET revoked_at = ? WHERE id = ? AND user_id = ? AND revoked_at IS NULL"
         )
         .bind(now)
-        .bind(key_id.to_string())
-        .bind(user_id.to_string())
+        .bind(key_id)
+        .bind(user_id)
         .execute(pool)
         .await?;
 

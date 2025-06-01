@@ -4,8 +4,7 @@ use axum::{
     http::StatusCode,
     response::{Html, Json, Redirect},
 };
-use serde::{Deserialize, Serialize};
-use tower_sessions::Session;
+use serde::Deserialize;
 use uuid::Uuid;
 
 use crate::{
@@ -200,7 +199,7 @@ pub async fn register_handler(
     }
 
     // 招待トークンの検証
-    let invitation = AuthQueries::get_invitation_by_token(&state.db_pool, form.token.into())
+    let invitation = AuthQueries::get_invitation_by_token(&state.db_pool, &form.token)
         .await
         .map_err(|e| {
             eprintln!("Database error while fetching invitation: {}", e);
@@ -235,7 +234,7 @@ pub async fn register_handler(
 
     // ユーザー作成
     // システム招待（invited_by が nil UUID）の場合は管理者権限を付与
-    let is_admin = invitation.invited_by == Uuid::nil();
+    let is_admin = invitation.invited_by == Uuid::nil().to_string();
     let invited_by = if is_admin {
         None
     } else {
@@ -247,7 +246,7 @@ pub async fn register_handler(
         &form.username,
         form.email.as_deref(),
         &form.password,
-        invited_by,
+        invited_by.as_deref(),
         is_admin,
     )
     .await
@@ -260,7 +259,7 @@ pub async fn register_handler(
     })?;
 
     // 招待を使用済みにマーク
-    AuthQueries::mark_invitation_used(&state.db_pool, form.token, user.id)
+    AuthQueries::mark_invitation_used(&state.db_pool, &form.token, &user.id)
         .await
         .map_err(|e| {
             eprintln!("Error marking invitation as used: {}", e);

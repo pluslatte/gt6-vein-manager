@@ -1,15 +1,14 @@
 use axum_login::{AuthUser, AuthnBackend, UserId};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 use crate::models::User;
 
 // axum-login用のユーザー実装
 impl AuthUser for User {
-    type Id = Uuid;
+    type Id = String;
 
     fn id(&self) -> Self::Id {
-        self.id
+        self.id.clone()
     }
 
     fn session_auth_hash(&self) -> &[u8] {
@@ -181,7 +180,7 @@ impl AuthnBackend for AuthBackend {
     async fn get_user(&self, user_id: &UserId<Self>) -> Result<Option<Self::User>, Self::Error> {
         use crate::auth::queries::AuthQueries;
 
-        AuthQueries::get_user_by_id(&self.db, *user_id).await
+        AuthQueries::get_user_by_id(&self.db, user_id).await
     }
 }
 

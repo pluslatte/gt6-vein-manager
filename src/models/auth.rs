@@ -1,35 +1,34 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct User {
-    pub id: Uuid,
+    pub id: String,
     pub username: String,
     pub email: Option<String>,
     pub password_hash: String,
     pub is_admin: bool,
     pub is_active: bool,
     pub created_at: DateTime<Utc>,
-    pub invited_by: Option<Uuid>,
+    pub invited_by: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct Invitation {
-    pub id: Uuid,
+    pub id: String,
     pub email: Option<String>,
-    pub token: Uuid,
-    pub invited_by: Uuid,
+    pub token: String,
+    pub invited_by: String,
     pub expires_at: DateTime<Utc>,
     pub used_at: Option<DateTime<Utc>>,
-    pub used_by: Option<Uuid>,
+    pub used_by: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
 pub struct ApiKey {
-    pub id: Uuid,
-    pub user_id: Uuid,
+    pub id: String,
+    pub user_id: String,
     pub key_name: String,
     pub key_hash: String,
     pub key_prefix: String,
@@ -41,7 +40,7 @@ pub struct ApiKey {
 // API keyの表示用（実際のキーは含まない）
 #[derive(Debug, Serialize)]
 pub struct ApiKeyDisplay {
-    pub id: Uuid,
+    pub id: String,
     pub key_name: String,
     pub key_prefix: String,
     pub last_used_at: Option<DateTime<Utc>>,
@@ -75,7 +74,7 @@ pub struct RegisterForm {
     pub username: String,
     pub email: Option<String>,
     pub password: String,
-    pub token: Uuid, // 招待トークン
+    pub token: String, // 招待トークン
 }
 
 #[derive(Debug, Deserialize)]
@@ -92,7 +91,7 @@ pub struct CreateApiKeyForm {
 // API key生成時のレスポンス（一度だけ表示）
 #[derive(Debug, Serialize)]
 pub struct ApiKeyResponse {
-    pub id: Uuid,
+    pub id: String,
     pub key_name: String,
     pub api_key: String, // gt6veinmanager_xxxxxxxxxxxx 形式
     pub created_at: DateTime<Utc>,
@@ -101,9 +100,9 @@ pub struct ApiKeyResponse {
 // 招待リンクのレスポンス
 #[derive(Debug, Serialize)]
 pub struct InvitationResponse {
-    pub id: Uuid,
+    pub id: String,
     pub email: Option<String>,
-    pub token: Uuid,
+    pub token: String,
     pub expires_at: DateTime<Utc>,
     pub invitation_url: String, // フロントエンド用の完全なURL
 }
@@ -111,7 +110,7 @@ pub struct InvitationResponse {
 // ユーザー情報レスポンス（パスワードハッシュ除く）
 #[derive(Debug, Serialize)]
 pub struct UserResponse {
-    pub id: Uuid,
+    pub id: String,
     pub username: String,
     pub email: Option<String>,
     pub is_admin: bool,
