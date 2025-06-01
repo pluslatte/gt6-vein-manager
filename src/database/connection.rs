@@ -1,5 +1,5 @@
-use sqlx::{MySqlPool, Row};
 use anyhow::Result;
+use sqlx::MySqlPool;
 
 #[derive(Clone)]
 pub struct AppState {
