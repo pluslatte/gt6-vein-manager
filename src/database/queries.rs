@@ -1,7 +1,7 @@
+use crate::models::{SearchQuery, Vein};
+use anyhow::Result;
 use sqlx::MySqlPool;
 use uuid::Uuid;
-use crate::models::{Vein, SearchQuery};
-use anyhow::Result;
 
 const BASE_QUERY: &str = r#"
     SELECT
@@ -43,13 +43,14 @@ const BASE_QUERY: &str = r#"
 
 pub async fn get_all_veins(pool: &MySqlPool) -> Result<Vec<Vein>, sqlx::Error> {
     let query = format!("{} ORDER BY v.created_at DESC", BASE_QUERY);
-    
-    sqlx::query_as::<_, Vein>(&query)
-        .fetch_all(pool)
-        .await
+
+    sqlx::query_as::<_, Vein>(&query).fetch_all(pool).await
 }
 
-pub async fn search_veins(pool: &MySqlPool, search_query: &SearchQuery) -> Result<Vec<Vein>, sqlx::Error> {
+pub async fn search_veins(
+    pool: &MySqlPool,
+    search_query: &SearchQuery,
+) -> Result<Vec<Vein>, sqlx::Error> {
     let mut query = BASE_QUERY.to_string();
     let mut conditions = Vec::new();
 
@@ -64,9 +65,7 @@ pub async fn search_veins(pool: &MySqlPool, search_query: &SearchQuery) -> Resul
 
     query.push_str(" ORDER BY created_at DESC");
 
-    sqlx::query_as::<_, Vein>(&query)
-        .fetch_all(pool)
-        .await
+    sqlx::query_as::<_, Vein>(&query).fetch_all(pool).await
 }
 
 pub async fn insert_vein(
@@ -96,10 +95,7 @@ pub async fn insert_vein(
     Ok(())
 }
 
-pub async fn insert_vein_confirmation(
-    pool: &MySqlPool,
-    vein_id: &str,
-) -> Result<(), sqlx::Error> {
+pub async fn insert_vein_confirmation(pool: &MySqlPool, vein_id: &str) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
         INSERT INTO vein_confirmations (id, vein_id, confirmed)
@@ -114,13 +110,25 @@ pub async fn insert_vein_confirmation(
     Ok(())
 }
 
-pub async fn insert_vein_depletion(
-    pool: &MySqlPool,
-    vein_id: &str,
-) -> Result<(), sqlx::Error> {
+pub async fn insert_vein_depletion(pool: &MySqlPool, vein_id: &str) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
         INSERT INTO vein_depletions (id, vein_id, depleted)
+        VALUES (?, ?, TRUE)
+        "#,
+    )
+    .bind(Uuid::new_v4().to_string())
+    .bind(vein_id)
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn insert_vein_revocation(pool: &MySqlPool, vein_id: &str) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        INSERT INTO vein_revokations (id, vein_id, revoked)
         VALUES (?, ?, TRUE)
         "#,
     )
