@@ -39,9 +39,9 @@ struct SearchQuery {
 #[derive(Debug, Deserialize)]
 struct AddVeinForm {
     name: String,
-    x_coord: i32,
-    y_coord: Option<i32>,
-    z_coord: i32,
+    x_coord: String,
+    y_coord: String,
+    z_coord: String,
     notes: Option<String>,
     confirmed: Option<bool>,
     depleted: Option<bool>,
@@ -213,6 +213,87 @@ async fn search_veins(
 async fn add_vein(State(state): State<AppState>, Form(form): Form<AddVeinForm>) -> Html<String> {
     let id = Uuid::new_v4().to_string();
 
+    // Validate and parse coordinates
+    let x_coord = match form.x_coord.parse::<i32>() {
+        Ok(val) => val,
+        Err(_) => {
+            return Html(
+                r#"
+                <!DOCTYPE html>
+                <html lang="ja">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>エラー</title>
+                    <link rel="stylesheet" href="styles.css">
+                </head>
+                <body class="error-page">
+                    <h1>追加エラー</h1>
+                    <div class="error">
+                        X座標が正しい整数ではありません。<br>
+                    </div>
+                    <a href="/">戻る</a>
+                </body>
+                </html>
+                "#
+                .to_string(),
+            );
+        }
+    };
+    let y_coord = if form.y_coord.trim().is_empty() {
+        None
+    } else {
+        match form.y_coord.parse::<i32>() {
+            Ok(val) => Some(val),
+            Err(_) => {
+                return Html(
+                    r#"
+                    <!DOCTYPE html>
+                    <html lang="ja">
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>エラー</title>
+                        <link rel="stylesheet" href="styles.css">
+                    </head>
+                    <body class="error-page">
+                        <h1>追加エラー</h1>
+                        <div class="error">
+                            Y座標が正しい整数ではありません。<br>
+                        </div>
+                        <a href="/">戻る</a>
+                    </body>
+                    </html>
+                    "#
+                    .to_string(),
+                );
+            }
+        }
+    };
+    let z_coord = match form.z_coord.parse::<i32>() {
+        Ok(val) => val,
+        Err(_) => {
+            return Html(
+                r#"
+                <!DOCTYPE html>
+                <html lang="ja">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>エラー</title>
+                    <link rel="stylesheet" href="styles.css">
+                </head>
+                <body class="error-page">
+                    <h1>追加エラー</h1>
+                    <div class="error">
+                        Z座標が正しい整数ではありません。<br>
+                    </div>
+                    <a href="/">戻る</a>
+                </body>
+                </html>
+                "#
+                .to_string(),
+            );
+        }
+    };
+
     let result = sqlx::query(
         r#"
         INSERT INTO veins (id, name, x_coord, y_coord, z_coord, notes, confirmed, depleted)
@@ -221,9 +302,9 @@ async fn add_vein(State(state): State<AppState>, Form(form): Form<AddVeinForm>) 
     )
     .bind(&id)
     .bind(&form.name)
-    .bind(form.x_coord)
-    .bind(form.y_coord)
-    .bind(form.z_coord)
+    .bind(x_coord)
+    .bind(y_coord)
+    .bind(z_coord)
     .bind(&form.notes)
     .bind(form.confirmed.unwrap_or(false))
     .bind(form.depleted.unwrap_or(false))
@@ -244,19 +325,14 @@ async fn add_vein(State(state): State<AppState>, Form(form): Form<AddVeinForm>) 
                 <h1>鉱脈追加完了</h1>
                 <div class="success">
                     <strong>「{}」</strong> が正常に追加されました！<br>
-                    座標: X={}, Z={}{}<br>
+                    座標: X={}, Z={}, Y={}<br>
                     ID: {}
                 </div>
                 <a href="/">戻る</a> | <a href="/search">全ての鉱脈を表示</a>
             </body>
             </html>
             "#,
-            form.name,
-            form.x_coord,
-            form.z_coord,
-            form.y_coord
-                .map_or_else(|| "".to_string(), |y| format!(", Y={}", y)),
-            id
+            &form.name, &form.x_coord, &form.z_coord, &form.y_coord, id
         )),
         Err(e) => {
             eprintln!("Database error: {}", e);
@@ -270,7 +346,7 @@ async fn add_vein(State(state): State<AppState>, Form(form): Form<AddVeinForm>) 
                     <link rel="stylesheet" href="styles.css">
                 </head>
                 <body class="error-page">
-                    <h1>追加エラー</h1>
+                    <h1>データベースエラー</h1>
                     <div class="error">
                         鉱脈の追加中にエラーが発生しました。<br>
                         同じ名前や座標の鉱脈が既に存在している可能性があります。
