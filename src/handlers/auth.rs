@@ -1,70 +1,64 @@
 use axum::{
+    Form,
     extract::{Query, State},
     http::StatusCode,
     response::{Html, Json, Redirect},
-    Form,
 };
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 use tower_sessions::Session;
+use uuid::Uuid;
 
 use crate::{
-    auth::{AuthSession, AuthQueries, Credentials},
+    auth::{AuthQueries, AuthSession, Credentials},
     database::AppState,
     models::{LoginForm, RegisterForm, UserResponse},
 };
 
 // ログインページ表示
 pub async fn login_page() -> Html<&'static str> {
-    Html(r#"
+    Html(
+        r#"
 <!DOCTYPE html>
 <html>
 <head>
     <title>GT6 Vein Manager - ログイン</title>
     <meta charset="utf-8">
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 400px; margin: 100px auto; padding: 20px; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], input[type="password"] { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-        button { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        .checkbox-group { display: flex; align-items: center; gap: 5px; }
-        .error { color: red; margin-top: 10px; }
-        .register-link { text-align: center; margin-top: 20px; }
-    </style>
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <h1>GT6 Vein Manager</h1>
-    <h2>ログイン</h2>
-    
-    <form method="post" action="/auth/login">
-        <div class="form-group">
-            <label for="username">ユーザー名</label>
-            <input type="text" id="username" name="username" required>
-        </div>
+    <div class="container">
+        <h1>GT6 Vein Manager</h1>
+        <h2>ログイン</h2>
         
-        <div class="form-group">
-            <label for="password">パスワード</label>
-            <input type="password" id="password" name="password" required>
-        </div>
-        
-        <div class="form-group">
-            <div class="checkbox-group">
-                <input type="checkbox" id="remember_me" name="remember_me" value="true">
-                <label for="remember_me">ログイン状態を保持する (7日間)</label>
+        <form method="post" action="/auth/login">
+            <div class="form-group">
+                <label for="username">ユーザー名</label>
+                <input type="text" id="username" name="username" required>
             </div>
-        </div>
+            
+            <div class="form-group">
+                <label for="password">パスワード</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="remember_me" name="remember_me" value="true">
+                    <label for="remember_me">ログイン状態を保持する (7日間)</label>
+                </div>
+            </div>
+            
+            <button type="submit">ログイン</button>
+        </form>
         
-        <button type="submit">ログイン</button>
-    </form>
-    
-    <div class="register-link">
-        <p>招待リンクをお持ちですか？ <a href="/auth/register">アカウント作成</a></p>
+        <div class="register-link">
+            <p>招待リンクをお持ちですか？ <a href="/auth/register">アカウント作成</a></p>
+        </div>
     </div>
 </body>
 </html>
-    "#)
+    "#,
+    )
 }
 
 // ログイン処理
@@ -87,7 +81,10 @@ pub async fn login_handler(
             }
 
             auth_session.login(&user).await.map_err(|e| {
-                (StatusCode::INTERNAL_SERVER_ERROR, format!("ログインに失敗しました: {}", e))
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("ログインに失敗しました: {}", e),
+                )
             })?;
 
             Ok(Redirect::to("/"))
@@ -108,7 +105,10 @@ pub async fn logout_handler(
     mut auth_session: AuthSession,
 ) -> Result<Redirect, (StatusCode, String)> {
     auth_session.logout().await.map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("ログアウトに失敗しました: {}", e))
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("ログアウトに失敗しました: {}", e),
+        )
     })?;
 
     Ok(Redirect::to("/auth/login"))
@@ -130,57 +130,52 @@ pub async fn register_page(Query(query): Query<RegisterQuery>) -> Html<String> {
         </div>"#.to_string()
     };
 
-    let html = format!(r#"
+    let html = format!(
+        r#"
 <!DOCTYPE html>
 <html>
 <head>
     <title>GT6 Vein Manager - アカウント作成</title>
     <meta charset="utf-8">
-    <style>
-        body {{ font-family: Arial, sans-serif; max-width: 400px; margin: 100px auto; padding: 20px; }}
-        .form-group {{ margin-bottom: 15px; }}
-        label {{ display: block; margin-bottom: 5px; font-weight: bold; }}
-        input[type="text"], input[type="password"], input[type="email"] {{ width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }}
-        button {{ width: 100%; padding: 10px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; }}
-        button:hover {{ background: #1e7e34; }}
-        .error {{ color: red; margin-top: 10px; }}
-        .login-link {{ text-align: center; margin-top: 20px; }}
-        .password-rules {{ font-size: 12px; color: #666; margin-top: 5px; }}
-    </style>
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <h1>GT6 Vein Manager</h1>
-    <h2>アカウント作成</h2>
-    
-    <form method="post" action="/auth/register">
-        {token_input}
+    <div class="container">
+        <h1>GT6 Vein Manager</h1>
+        <h2>アカウント作成</h2>
         
-        <div class="form-group">
-            <label for="username">ユーザー名</label>
-            <input type="text" id="username" name="username" required>
-            <div class="password-rules">3-50文字、英数字・アンダースコア・ハイフンのみ</div>
+        <form method="post" action="/auth/register">
+            {token_input}
+            
+            <div class="form-group">
+                <label for="username">ユーザー名</label>
+                <input type="text" id="username" name="username" required>
+                <div class="password-rules">3-50文字、英数字・アンダースコア・ハイフンのみ</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">メールアドレス（任意）</label>
+                <input type="email" id="email" name="email">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">パスワード</label>
+                <input type="password" id="password" name="password" required>
+                <div class="password-rules">8文字以上</div>
+            </div>
+            
+            <button type="submit">アカウント作成</button>
+        </form>
+        
+        <div class="login-link">
+            <p>すでにアカウントをお持ちですか？ <a href="/auth/login">ログイン</a></p>
         </div>
-        
-        <div class="form-group">
-            <label for="email">メールアドレス（任意）</label>
-            <input type="email" id="email" name="email">
-        </div>
-        
-        <div class="form-group">
-            <label for="password">パスワード</label>
-            <input type="password" id="password" name="password" required>
-            <div class="password-rules">8文字以上</div>
-        </div>
-        
-        <button type="submit">アカウント作成</button>
-    </form>
-    
-    <div class="login-link">
-        <p>すでにアカウントをお持ちですか？ <a href="/auth/login">ログイン</a></p>
     </div>
 </body>
 </html>
-    "#, token_input = token_input);
+    "#,
+        token_input = token_input
+    );
 
     Html(html)
 }
@@ -190,7 +185,7 @@ pub async fn register_handler(
     State(state): State<AppState>,
     Form(form): Form<RegisterForm>,
 ) -> Result<Redirect, (StatusCode, String)> {
-    use crate::auth::utils::{validate_username, validate_password};
+    use crate::auth::utils::{validate_password, validate_username};
 
     // バリデーション
     if let Err(e) = validate_username(&form.username) {
@@ -204,7 +199,12 @@ pub async fn register_handler(
     // 招待トークンの検証
     let invitation = AuthQueries::get_invitation_by_token(&state.db_pool, form.token)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("データベースエラー: {}", e)))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("データベースエラー: {}", e),
+            )
+        })?;
 
     let invitation = invitation.ok_or((
         StatusCode::BAD_REQUEST,
@@ -214,10 +214,18 @@ pub async fn register_handler(
     // ユーザー名の重複チェック
     let existing_user = AuthQueries::get_user_by_username(&state.db_pool, &form.username)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("データベースエラー: {}", e)))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("データベースエラー: {}", e),
+            )
+        })?;
 
     if existing_user.is_some() {
-        return Err((StatusCode::BAD_REQUEST, "このユーザー名は既に使用されています".to_string()));
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "このユーザー名は既に使用されています".to_string(),
+        ));
     }
 
     // ユーザー作成
@@ -230,12 +238,22 @@ pub async fn register_handler(
         false, // 通常ユーザー
     )
     .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("ユーザー作成エラー: {}", e)))?;
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("ユーザー作成エラー: {}", e),
+        )
+    })?;
 
     // 招待を使用済みにマーク
     AuthQueries::mark_invitation_used(&state.db_pool, form.token, user.id)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("データベースエラー: {}", e)))?;
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("データベースエラー: {}", e),
+            )
+        })?;
 
     Ok(Redirect::to("/auth/login"))
 }
