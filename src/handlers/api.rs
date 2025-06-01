@@ -1,21 +1,11 @@
 use crate::database::{
-    AppState, get_all_veins, insert_vein_confirmation, insert_vein_depletion,
-    insert_vein_revocation,
+    AppState, insert_vein_confirmation, insert_vein_depletion, insert_vein_revocation,
 };
-use crate::models::Vein;
 use axum::{
-    Json,
     extract::{Path, State},
     http::StatusCode,
     response::Redirect,
 };
-
-pub async fn get_veins_all(State(state): State<AppState>) -> Result<Json<Vec<Vein>>, StatusCode> {
-    match get_all_veins(&state.db_pool).await {
-        Ok(veins) => Ok(Json(veins)),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
-}
 
 pub async fn vein_comfirmation_set(
     State(state): State<AppState>,

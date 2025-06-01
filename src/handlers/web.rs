@@ -108,8 +108,7 @@ fn generate_search_results_html(veins: Vec<Vein>, query: &SearchQuery) -> Html<S
                 {}
                 
                 <div class="nav-links">
-                    <a href="/">新しい検索</a>
-                    <a href="/search">全ての鉱脈を表示</a>
+                    <a href="/">戻る</a>
                 </div>
             </div>
         </body>
@@ -286,7 +285,9 @@ fn generate_success_html(form: &AddVeinForm, id: &str) -> String {
                 座標: X={}, Z={}, Y={}<br>
                 ID: {}
             </div>
-            <a href="/">戻る</a> | <a href="/search">全ての鉱脈を表示</a>
+            <div class="nav-links">
+                <a href="/">戻る</a>
+            </div>
         </body>
         </html>
         "#,

@@ -39,15 +39,6 @@ const BASE_QUERY: &str = r#"
         ) vr ON v.id = vr.vein_id
 "#;
 
-pub async fn get_all_veins(pool: &MySqlPool) -> Result<Vec<Vein>, sqlx::Error> {
-    let query = format!(
-        "{} WHERE (vr.revoked IS NULL OR vr.revoked = FALSE) ORDER BY v.created_at DESC",
-        BASE_QUERY
-    );
-
-    sqlx::query_as::<_, Vein>(&query).fetch_all(pool).await
-}
-
 pub async fn search_veins(
     pool: &MySqlPool,
     search_query: &SearchQuery,
