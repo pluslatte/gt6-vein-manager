@@ -23,6 +23,8 @@ struct Vein {
     y_coord: Option<i32>,
     z_coord: i32,
     notes: Option<String>,
+    confirmed: bool,
+    depleted: bool,
     created_at: Option<DateTime<Utc>>,
 }
 
@@ -41,6 +43,8 @@ struct AddVeinForm {
     y_coord: Option<i32>,
     z_coord: i32,
     notes: Option<String>,
+    confirmed: Option<bool>,
+    depleted: Option<bool>,
 }
 
 #[tokio::main]
@@ -62,6 +66,8 @@ async fn main() -> anyhow::Result<()> {
             y_coord INT DEFAULT NULL,
             z_coord INT NOT NULL,
             notes TEXT,
+            confirmed BOOLEAN DEFAULT FALSE,
+            depleted BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         "#,
@@ -91,7 +97,7 @@ async fn main() -> anyhow::Result<()> {
 async fn get_veins_all(State(state): State<AppState>) -> Result<Json<Vec<Vein>>, StatusCode> {
     let veins = sqlx::query_as::<_, Vein>(
         r#"
-        SELECT id, name, x_coord, y_coord, z_coord, notes, created_at
+        SELECT id, name, x_coord, y_coord, z_coord, notes, confirmed, depleted, created_at
         FROM veins
         ORDER BY created_at DESC
     "#,
@@ -126,7 +132,7 @@ async fn search_veins(
     Query(params): Query<SearchQuery>,
 ) -> Html<String> {
     let mut query =
-        "SELECT id, name, x_coord, y_coord, z_coord, notes, created_at FROM veins WHERE 1=1"
+        "SELECT id, name, x_coord, y_coord, z_coord, notes, confirmed, depleted, created_at FROM veins WHERE 1=1"
             .to_string();
     let mut conditions = Vec::new();
 
@@ -185,8 +191,8 @@ async fn add_vein(State(state): State<AppState>, Form(form): Form<AddVeinForm>) 
 
     let result = sqlx::query(
         r#"
-        INSERT INTO veins (id, name, x_coord, y_coord, z_coord, notes)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO veins (id, name, x_coord, y_coord, z_coord, notes, confirmed, depleted)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         "#,
     )
     .bind(&id)
@@ -195,6 +201,8 @@ async fn add_vein(State(state): State<AppState>, Form(form): Form<AddVeinForm>) 
     .bind(form.y_coord)
     .bind(form.z_coord)
     .bind(&form.notes)
+    .bind(form.confirmed.unwrap_or(false))
+    .bind(form.depleted.unwrap_or(false))
     .execute(&state.db_pool)
     .await;
 
@@ -292,6 +300,8 @@ fn generate_search_results_html(veins: Vec<Vein>, query: &SearchQuery) -> Html<S
                     <th>Z座標</th>
                     <th>Y座標</th>
                     <th>メモ</th>
+                    <th>視認済み</th>
+                    <th>枯渇済み</th>
                     <th>登録日時</th>
                 </tr>
             </thead>
@@ -309,6 +319,8 @@ fn generate_search_results_html(veins: Vec<Vein>, query: &SearchQuery) -> Html<S
                     <td>{}</td>
                     <td>{}</td>
                     <td>{}</td>
+                    <td>{}</td>
+                    <td>{}</td>
                 </tr>
                 "#,
                 vein.name,
@@ -317,6 +329,8 @@ fn generate_search_results_html(veins: Vec<Vein>, query: &SearchQuery) -> Html<S
                 vein.y_coord
                     .map_or_else(|| "-".to_string(), |y| y.to_string()),
                 vein.notes.as_deref().unwrap_or("-"),
+                if vein.confirmed { "✓" } else { "✗" },
+                if vein.depleted { "✓" } else { "✗" },
                 vein.created_at.map_or_else(
                     || "-".to_string(),
                     |dt| dt.format("%Y-%m-%d %H:%M:%S").to_string()

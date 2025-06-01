@@ -110,6 +110,28 @@ textarea:focus {
     box-shadow: 0 0 0 2px rgba(69, 133, 136, 0.3);
 }
 
+/* チェックボックス */
+.checkbox-group {
+    flex-direction: row !important;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkbox-group label {
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--blue);
+    cursor: pointer;
+}
+
 button {
     padding: 8px 16px;
     background-color: var(--blue);
