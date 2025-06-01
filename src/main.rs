@@ -16,7 +16,10 @@ use handlers::{
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
-    let port = std::env::var("PORT").unwrap_or_else(|_| "24528".to_string());
+    let port = std::env::var("PORT").unwrap_or_else(|_| {
+        println!("PORT environment variable not set, using default port 24528");
+        "24528".to_string()
+    });
     let addr = format!("0.0.0.0:{}", port);
 
     let pool = initialize_database().await?;
