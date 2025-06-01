@@ -9,7 +9,8 @@ use axum::{
 use database::{AppState, initialize_database};
 use handlers::{
     add_vein_handler, get_veins_all, search_veins_handler, serve_css, serve_index,
-    update_vein_confirmation, update_vein_depletion, update_vein_revocation,
+    update_vein_revocation, vein_comfirmation_set, vein_confirmation_revoke, vein_depletion_revoke,
+    vein_depletion_set,
 };
 
 #[tokio::main]
@@ -20,10 +21,21 @@ async fn main() -> anyhow::Result<()> {
     let app = Router::new()
         .route("/api/veins", get(get_veins_all))
         .route(
-            "/api/veins/{vein_id}/confirm",
-            post(update_vein_confirmation),
+            "/api/veins/{vein_id}/confirmation/set",
+            post(vein_comfirmation_set),
         )
-        .route("/api/veins/{vein_id}/deplete", post(update_vein_depletion))
+        .route(
+            "/api/veins/{vein_id}/confirmation/revoke",
+            post(vein_confirmation_revoke),
+        )
+        .route(
+            "/api/veins/{vein_id}/depletion/set",
+            post(vein_depletion_set),
+        )
+        .route(
+            "/api/veins/{vein_id}/depletion/revoke",
+            post(vein_depletion_revoke),
+        )
         .route("/api/veins/{vein_id}/revoke", post(update_vein_revocation))
         .route("/", get(serve_index))
         .route("/index.html", get(serve_index))

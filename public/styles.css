@@ -348,9 +348,13 @@ tr:hover {
 }
 
 .action-btn.confirmed {
-    background-color: var(--bg3);
-    color: var(--fg2);
-    cursor: not-allowed;
+    background-color: var(--green);
+    color: var(--bg0);
+}
+
+.action-btn.confirmed:hover {
+    background-color: var(--red);
+    transform: translateY(-1px);
 }
 
 .action-btn.deplete {
@@ -364,9 +368,13 @@ tr:hover {
 }
 
 .action-btn.depleted {
-    background-color: var(--bg3);
-    color: var(--fg2);
-    cursor: not-allowed;
+    background-color: var(--yellow);
+    color: var(--bg0);
+}
+
+.action-btn.depleted:hover {
+    background-color: var(--red);
+    transform: translateY(-1px);
 }
 
 .action-btn.revoke {

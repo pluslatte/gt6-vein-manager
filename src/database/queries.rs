@@ -95,30 +95,32 @@ pub async fn insert_vein(
     Ok(())
 }
 
-pub async fn insert_vein_confirmation(pool: &MySqlPool, vein_id: &str) -> Result<(), sqlx::Error> {
+pub async fn insert_vein_confirmation(pool: &MySqlPool, vein_id: &str, confirmed: bool) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
         INSERT INTO vein_confirmations (id, vein_id, confirmed)
-        VALUES (?, ?, TRUE)
+        VALUES (?, ?, ?)
         "#,
     )
     .bind(Uuid::new_v4().to_string())
     .bind(vein_id)
+    .bind(confirmed)
     .execute(pool)
     .await?;
 
     Ok(())
 }
 
-pub async fn insert_vein_depletion(pool: &MySqlPool, vein_id: &str) -> Result<(), sqlx::Error> {
+pub async fn insert_vein_depletion(pool: &MySqlPool, vein_id: &str, depleted: bool) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
         INSERT INTO vein_depletions (id, vein_id, depleted)
-        VALUES (?, ?, TRUE)
+        VALUES (?, ?, ?)
         "#,
     )
     .bind(Uuid::new_v4().to_string())
     .bind(vein_id)
+    .bind(depleted)
     .execute(pool)
     .await?;
 

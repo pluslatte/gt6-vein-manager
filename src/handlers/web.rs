@@ -59,14 +59,14 @@ pub async fn add_vein_handler(
 
     // 確認済みの場合
     if form.is_confirmed() {
-        if let Err(e) = insert_vein_confirmation(&state.db_pool, &id).await {
+        if let Err(e) = insert_vein_confirmation(&state.db_pool, &id, true).await {
             eprintln!("Failed to insert confirmation: {}", e);
         }
     }
 
     // 枯渇済みの場合
     if form.is_depleted() {
-        if let Err(e) = insert_vein_depletion(&state.db_pool, &id).await {
+        if let Err(e) = insert_vein_depletion(&state.db_pool, &id, true).await {
             eprintln!("Failed to insert depletion: {}", e);
         }
     }
@@ -139,19 +139,25 @@ fn generate_veins_table(veins: Vec<Vein>) -> String {
 
     for vein in veins {
         let confirmation_button = if vein.confirmed {
-            "<button class=\"action-btn confirmed\" disabled>視認済み</button>".to_string()
+            format!(
+                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/confirmation/revoke\"><button type=\"submit\" class=\"action-btn confirmed\">視認解除</button></form>",
+                vein.id
+            )
         } else {
             format!(
-                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/confirm\"><button type=\"submit\" class=\"action-btn confirm\">視認済みにする</button></form>",
+                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/confirmation/set\"><button type=\"submit\" class=\"action-btn confirm\">視認済みにする</button></form>",
                 vein.id
             )
         };
 
         let depletion_button = if vein.depleted {
-            "<button class=\"action-btn depleted\" disabled>枯渇済み</button>".to_string()
+            format!(
+                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/depletion/revoke\"><button type=\"submit\" class=\"action-btn depleted\">枯渇解除</button></form>",
+                vein.id
+            )
         } else {
             format!(
-                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/deplete\"><button type=\"submit\" class=\"action-btn deplete\">枯渇済みにする</button></form>",
+                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/depletion/set\"><button type=\"submit\" class=\"action-btn deplete\">枯渇済みにする</button></form>",
                 vein.id
             )
         };
