@@ -31,9 +31,6 @@ struct Vein {
 #[derive(Debug, Deserialize)]
 struct SearchQuery {
     name: Option<String>,
-    x_coord: Option<i32>,
-    y_coord: Option<i32>,
-    z_coord: Option<i32>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -135,9 +132,18 @@ async fn main() -> anyhow::Result<()> {
 async fn get_veins_all(State(state): State<AppState>) -> Result<Json<Vec<Vein>>, StatusCode> {
     let veins = sqlx::query_as::<_, Vein>(
         r#"
-        SELECT id, name, x_coord, y_coord, z_coord, notes, confirmed, depleted, created_at
-        FROM veins
-        ORDER BY created_at DESC
+        SELECT
+            v.id, v.name, v.x_coord, v.y_coord, v.z_coord, v.notes, v.created_at,
+            CASE WHEN vc.confirmed IS NOT NULL THEN TRUE ELSE FALSE END AS confirmed,
+            CASE WHEN vd.depleted IS NOT NULL THEN TRUE ELSE FALSE END AS depleted,
+            CASE WHEN vr.revoked IS NOT NULL THEN TRUE ELSE FALSE END AS revoked
+        FROM veins v
+            LEFT JOIN vein_confirmations vc ON v.id = vc.vein_id AND vc.confirmed = TRUE
+            LEFT JOIN vein_depletions vd ON v.id = vd.vein_id AND vd.depleted = TRUE
+            LEFT JOIN vein_revokations vr ON v.id = vr.vein_id AND vr.revoked = TRUE
+        WHERE
+            vr.revoked IS NULL OR vr.revoked = FALSE
+        ORDER BY v.created_at DESC
     "#,
     )
     .fetch_all(&state.db_pool)
@@ -187,27 +193,26 @@ async fn search_veins(
     State(state): State<AppState>,
     Query(params): Query<SearchQuery>,
 ) -> Html<String> {
-    let mut query =
-        "SELECT id, name, x_coord, y_coord, z_coord, notes, confirmed, depleted, created_at FROM veins WHERE 1=1"
-            .to_string();
+    let mut query = r#"
+        SELECT
+            v.id, v.name, v.x_coord, v.y_coord, v.z_coord, v.notes, v.created_at,
+            CASE WHEN vc.confirmed IS NOT NULL THEN TRUE ELSE FALSE END AS confirmed,
+            CASE WHEN vd.depleted IS NOT NULL THEN TRUE ELSE FALSE END AS depleted,
+            CASE WHEN vr.revoked IS NOT NULL THEN TRUE ELSE FALSE END AS revoked
+        FROM veins v
+            LEFT JOIN vein_confirmations vc ON v.id = vc.vein_id AND vc.confirmed = TRUE
+            LEFT JOIN vein_depletions vd ON v.id = vd.vein_id AND vd.depleted = TRUE
+            LEFT JOIN vein_revokations vr ON v.id = vr.vein_id AND vr.revoked = TRUE
+        WHERE
+            (vr.revoked IS NULL OR vr.revoked = FALSE)
+    "#
+    .to_string();
     let mut conditions = Vec::new();
 
     if let Some(name) = &params.name {
         if !name.trim().is_empty() {
             conditions.push(format!("name LIKE '%{}%'", name.replace("'", "''")));
         }
-    }
-
-    if let Some(x) = params.x_coord {
-        conditions.push(format!("x_coord = {}", x));
-    }
-
-    if let Some(z) = params.z_coord {
-        conditions.push(format!("z_coord = {}", z));
-    }
-
-    if let Some(y) = params.y_coord {
-        conditions.push(format!("y_coord = {}", y));
     }
 
     if !conditions.is_empty() {
@@ -295,8 +300,8 @@ async fn add_vein(State(state): State<AppState>, Form(form): Form<AddVeinForm>) 
 
     let result = sqlx::query(
         r#"
-        INSERT INTO veins (id, name, x_coord, y_coord, z_coord, notes, confirmed, depleted)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO veins (id, name, x_coord, y_coord, z_coord, notes)
+        VALUES (?, ?, ?, ?, ?, ?)
         "#,
     )
     .bind(&id)
@@ -305,34 +310,62 @@ async fn add_vein(State(state): State<AppState>, Form(form): Form<AddVeinForm>) 
     .bind(y_coord)
     .bind(z_coord)
     .bind(&form.notes)
-    .bind(form.confirmed.unwrap_or(false))
-    .bind(form.depleted.unwrap_or(false))
     .execute(&state.db_pool)
     .await;
 
     match result {
-        Ok(_) => Html(format!(
-            r#"
-            <!DOCTYPE html>
-            <html lang="ja">
-            <head>
-                <meta charset="UTF-8">
-                <title>追加完了</title>
-                <link rel="stylesheet" href="styles.css">
-            </head>
-            <body class="result-page">
-                <h1>鉱脈追加完了</h1>
-                <div class="success">
-                    <strong>「{}」</strong> が正常に追加されました！<br>
-                    座標: X={}, Z={}, Y={}<br>
-                    ID: {}
-                </div>
-                <a href="/">戻る</a> | <a href="/search">全ての鉱脈を表示</a>
-            </body>
-            </html>
-            "#,
-            &form.name, &form.x_coord, &form.z_coord, &form.y_coord, id
-        )),
+        Ok(_) => {
+            if form.confirmed.unwrap_or(false) {
+                sqlx::query(
+                    r#"
+                    INSERT INTO vein_confirmations (id, vein_id, confirmed)
+                    VALUES (?, ?, TRUE)
+                    "#,
+                )
+                .bind(Uuid::new_v4().to_string())
+                .bind(&id)
+                .execute(&state.db_pool)
+                .await
+                .ok();
+            }
+
+            if form.depleted.unwrap_or(false) {
+                sqlx::query(
+                    r#"
+                    INSERT INTO vein_depletions (id, vein_id, depleted)
+                    VALUES (?, ?, TRUE)
+                    "#,
+                )
+                .bind(Uuid::new_v4().to_string())
+                .bind(&id)
+                .execute(&state.db_pool)
+                .await
+                .ok();
+            }
+
+            Html(format!(
+                r#"
+                <!DOCTYPE html>
+                <html lang="ja">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>追加完了</title>
+                    <link rel="stylesheet" href="styles.css">
+                </head>
+                <body class="result-page">
+                    <h1>鉱脈追加完了</h1>
+                    <div class="success">
+                        <strong>「{}」</strong> が正常に追加されました！<br>
+                        座標: X={}, Z={}, Y={}<br>
+                        ID: {}
+                    </div>
+                    <a href="/">戻る</a> | <a href="/search">全ての鉱脈を表示</a>
+                </body>
+                </html>
+                "#,
+                &form.name, &form.x_coord, &form.z_coord, &form.y_coord, id
+            ))
+        }
         Err(e) => {
             eprintln!("Database error: {}", e);
             Html(
@@ -367,15 +400,6 @@ fn generate_search_results_html(veins: Vec<Vein>, query: &SearchQuery) -> Html<S
             if !name.trim().is_empty() {
                 info_parts.push(format!("名前: {}", name));
             }
-        }
-        if let Some(x) = query.x_coord {
-            info_parts.push(format!("X座標: {}", x));
-        }
-        if let Some(z) = query.z_coord {
-            info_parts.push(format!("Z座標: {}", z));
-        }
-        if let Some(y) = query.y_coord {
-            info_parts.push(format!("Y座標: {}", y));
         }
 
         if info_parts.is_empty() {
