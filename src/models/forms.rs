@@ -7,11 +7,16 @@ pub struct SearchQuery {
 
 impl SearchQuery {
     pub fn has_name_filter(&self) -> bool {
-        self.name.as_ref().map_or(false, |name| !name.trim().is_empty())
+        self.name
+            .as_ref()
+            .is_some_and(|name| !name.trim().is_empty())
     }
 
     pub fn get_name_filter(&self) -> Option<&str> {
-        self.name.as_ref().filter(|name| !name.trim().is_empty()).map(|s| s.as_str())
+        self.name
+            .as_ref()
+            .filter(|name| !name.trim().is_empty())
+            .map(|s| s.as_str())
     }
 }
 
