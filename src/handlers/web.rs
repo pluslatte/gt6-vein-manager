@@ -156,10 +156,17 @@ fn generate_veins_table(veins: Vec<Vein>, query: &SearchQuery) -> String {
             format!(
                 r#"
                 <form style="display: inline;" method="post" action="/api/veins/{}/{}/{}">
+                    <input type="hidden" name="query_state" value="{}">
                     <button type="submit" class="action-btn {}" {}>{}</button>
                 </form>
                 "#,
-                vein_id, target_state, target_operation, button_state, confirm_attr, button_text
+                vein_id,
+                target_state,
+                target_operation,
+                query.get_all_query_string(),
+                button_state,
+                confirm_attr,
+                button_text,
             )
         };
 

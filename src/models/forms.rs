@@ -23,6 +23,17 @@ impl SearchQuery {
     pub fn should_include_revoked(&self) -> bool {
         self.include_revoked.unwrap_or(false)
     }
+
+    pub fn get_all_query_string(&self) -> String {
+        let mut query = String::new();
+        if let Some(name) = &self.name {
+            query.push_str(&format!("name={}&", name));
+        }
+        if let Some(include_revoked) = self.include_revoked {
+            query.push_str(&format!("include_revoked={}&", include_revoked));
+        }
+        query.trim_end_matches('&').to_string()
+    }
 }
 
 #[derive(Debug, Deserialize)]
