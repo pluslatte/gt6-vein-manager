@@ -27,6 +27,75 @@ impl AuthBackend {
     pub fn new(db: sqlx::MySqlPool) -> Self {
         Self { db }
     }
+
+    pub async fn ensure_tables(&self) -> anyhow::Result<()> {
+        use sqlx::query;
+
+        // ユーザーテーブルの作成
+        query(
+            r#"
+            CREATE TABLE IF NOT EXISTS users (
+                id CHAR(36) PRIMARY KEY,
+                username VARCHAR(50) UNIQUE NOT NULL,
+                email VARCHAR(255),
+                password_hash VARCHAR(255) NOT NULL,
+                is_admin BOOLEAN DEFAULT FALSE,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                invited_by CHAR(36),
+                INDEX idx_username (username),
+                INDEX idx_email (email),
+                FOREIGN KEY (invited_by) REFERENCES users(id) ON DELETE SET NULL
+            )
+            "#,
+        )
+        .execute(&self.db)
+        .await?;
+
+        query(
+            r#"
+            CREATE TABLE IF NOT EXISTS invitations (
+                id CHAR(36) PRIMARY KEY,
+                email VARCHAR(255),
+                token CHAR(36) UNIQUE NOT NULL,
+                invited_by CHAR(36) NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                used_at TIMESTAMP NULL,
+                used_by CHAR(36) NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_token (token),
+                INDEX idx_email (email),
+                FOREIGN KEY (invited_by) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (used_by) REFERENCES users(id) ON DELETE SET NULL
+            );
+            "#,
+        )
+        .execute(&self.db)
+        .await?;
+
+        query(
+            r#"
+            CREATE TABLE IF NOT EXISTS user_api_keys (
+                id CHAR(36) PRIMARY KEY,
+                user_id CHAR(36) NOT NULL,
+                key_name VARCHAR(100) NOT NULL,
+                key_hash VARCHAR(255) NOT NULL,
+                key_prefix VARCHAR(8) NOT NULL,
+                last_used_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                revoked_at TIMESTAMP NULL,
+                INDEX idx_user_id (user_id),
+                INDEX idx_key_hash (key_hash),
+                INDEX idx_key_prefix (key_prefix),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+            "#,
+        )
+        .execute(&self.db)
+        .await?;
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
