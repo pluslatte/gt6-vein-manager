@@ -20,12 +20,12 @@ pub async fn initialize_database() -> Result<MySqlPool> {
     let pool = MySqlPool::connect(format!("{}/{}", &database_url, &database_name).as_str()).await?;
     println!("Connected to the database at {}", database_url);
 
-    create_tables(&pool).await?;
+    ensure_tables(&pool).await?;
 
     Ok(pool)
 }
 
-async fn create_tables(pool: &MySqlPool) -> Result<()> {
+async fn ensure_tables(pool: &MySqlPool) -> Result<()> {
     // メインの鉱脈テーブル
     sqlx::query(
         r#"

@@ -1,5 +1,6 @@
 use axum_login::{AuthUser, AuthnBackend, UserId};
 use serde::{Deserialize, Serialize};
+use sqlx::MySqlPool;
 use uuid::Uuid;
 
 use crate::models::User;
@@ -35,7 +36,7 @@ impl AuthBackend {
         query(
             r#"
             CREATE TABLE IF NOT EXISTS users (
-                id CHAR(36) PRIMARY KEY,
+                id VARCHAR(36) PRIMARY KEY,
                 username VARCHAR(50) UNIQUE NOT NULL,
                 email VARCHAR(255),
                 password_hash VARCHAR(255) NOT NULL,
@@ -55,10 +56,10 @@ impl AuthBackend {
         query(
             r#"
             CREATE TABLE IF NOT EXISTS invitations (
-                id CHAR(36) PRIMARY KEY,
+                id VARCHAR(36) PRIMARY KEY,
                 email VARCHAR(255),
                 token CHAR(36) UNIQUE NOT NULL,
-                invited_by CHAR(36) NOT NULL,
+                invited_by CHAR(36) NULL,
                 expires_at TIMESTAMP NOT NULL,
                 used_at TIMESTAMP NULL,
                 used_by CHAR(36) NULL,
@@ -76,7 +77,7 @@ impl AuthBackend {
         query(
             r#"
             CREATE TABLE IF NOT EXISTS user_api_keys (
-                id CHAR(36) PRIMARY KEY,
+                id VARCHAR(36) PRIMARY KEY,
                 user_id CHAR(36) NOT NULL,
                 key_name VARCHAR(100) NOT NULL,
                 key_hash VARCHAR(255) NOT NULL,
@@ -93,6 +94,74 @@ impl AuthBackend {
         )
         .execute(&self.db)
         .await?;
+
+        Ok(())
+    }
+
+    pub async fn check_users_and_generate_invitation(&self) -> anyhow::Result<()> {
+        use crate::auth::queries::AuthQueries;
+
+        // アクティブユーザーが存在するかチェック
+        let has_users = AuthQueries::has_any_users(&self.db).await?;
+
+        if !has_users {
+            println!("\n=== GT6 Vein Manager 初期セットアップ ===");
+            println!("システムにユーザーが登録されていません。");
+            println!("管理者用の招待リンクを生成します...\n");
+
+            // 環境変数からサーバーURLを取得（デフォルトはlocalhost:24528）
+            let server_port = std::env::var("PORT").unwrap_or_else(|_| "24528".to_string());
+            let server_host = std::env::var("HOST").unwrap_or_else(|_| "localhost".to_string());
+            let server_protocol = std::env::var("PROTOCOL").unwrap_or_else(|_| "http".to_string());
+            let base_url = format!("{}://{}:{}", server_protocol, server_host, server_port);
+
+            // システム初期招待を作成
+            match AuthQueries::create_system_invitation(&self.db, None).await {
+                Ok(invitation) => {
+                    let invitation_url =
+                        format!("{}/auth/register?token={}", base_url, invitation.token);
+
+                    println!("╭─────────────────────────────────────────────────────────────╮");
+                    println!("│                  🎮 GT6 Vein Manager                        │");
+                    println!("├─────────────────────────────────────────────────────────────┤");
+                    println!(
+                        "│  初回管理者アカウント作成用の招待リンクを生成しました                 │"
+                    );
+                    println!("│                                                             │");
+                    println!("│  招待リンク:                                                  │");
+                    println!(
+                        "│  {}                                                         │",
+                        invitation_url
+                    );
+                    println!("│                                                             │");
+                    println!(
+                        "│  この招待リンクは 7日間 有効です。                                │"
+                    );
+                    println!(
+                        "│  管理者アカウントを作成後、他のユーザーを招待できます。               │"
+                    );
+                    println!("│                                                             │");
+                    println!(
+                        "│  ⚠️  このリンクは一度だけ使用できます。安全に保管してください          │"
+                    );
+                    println!("╰─────────────────────────────────────────────────────────────╯");
+                    println!();
+
+                    // 有効期限も表示
+                    println!(
+                        "有効期限: {}",
+                        invitation.expires_at.format("%Y-%m-%d %H:%M:%S UTC")
+                    );
+                    println!("招待ID: {}", invitation.id);
+                    println!();
+                }
+                Err(e) => {
+                    println!("❌ 招待リンクの生成に失敗しました: {}", e);
+                }
+            }
+        } else {
+            println!("✅ ユーザーが既に登録されています。");
+        }
 
         Ok(())
     }

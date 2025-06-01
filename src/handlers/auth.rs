@@ -187,19 +187,23 @@ pub async fn register_handler(
 ) -> Result<Redirect, (StatusCode, String)> {
     use crate::auth::utils::{validate_password, validate_username};
 
+    println!("Registering user attempt with username: {}", &form.username);
     // バリデーション
     if let Err(e) = validate_username(&form.username) {
+        eprintln!("Username validation failed: {}", e);
         return Err((StatusCode::BAD_REQUEST, e));
     }
 
     if let Err(e) = validate_password(&form.password) {
+        eprintln!("Password validation failed: {}", e);
         return Err((StatusCode::BAD_REQUEST, e));
     }
 
     // 招待トークンの検証
-    let invitation = AuthQueries::get_invitation_by_token(&state.db_pool, form.token)
+    let invitation = AuthQueries::get_invitation_by_token(&state.db_pool, form.token.into())
         .await
         .map_err(|e| {
+            eprintln!("Database error while fetching invitation: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("データベースエラー: {}", e),
@@ -215,6 +219,7 @@ pub async fn register_handler(
     let existing_user = AuthQueries::get_user_by_username(&state.db_pool, &form.username)
         .await
         .map_err(|e| {
+            eprintln!("Database error while checking existing user: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("データベースエラー: {}", e),
@@ -229,16 +234,25 @@ pub async fn register_handler(
     }
 
     // ユーザー作成
+    // システム招待（invited_by が nil UUID）の場合は管理者権限を付与
+    let is_admin = invitation.invited_by == Uuid::nil();
+    let invited_by = if is_admin {
+        None
+    } else {
+        Some(invitation.invited_by)
+    };
+
     let user = AuthQueries::create_user(
         &state.db_pool,
         &form.username,
         form.email.as_deref(),
         &form.password,
-        Some(invitation.invited_by),
-        false, // 通常ユーザー
+        invited_by,
+        is_admin,
     )
     .await
     .map_err(|e| {
+        eprintln!("Error creating user: {}", e);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             format!("ユーザー作成エラー: {}", e),
@@ -249,6 +263,7 @@ pub async fn register_handler(
     AuthQueries::mark_invitation_used(&state.db_pool, form.token, user.id)
         .await
         .map_err(|e| {
+            eprintln!("Error marking invitation as used: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("データベースエラー: {}", e),

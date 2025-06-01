@@ -8,6 +8,55 @@ use crate::models::{ApiKey, Invitation, User};
 pub struct AuthQueries;
 
 impl AuthQueries {
+    /// システムにユーザーが存在するかチェック
+    pub async fn has_any_users(pool: &MySqlPool) -> Result<bool, sqlx::Error> {
+        let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM users WHERE is_active = TRUE")
+            .fetch_one(pool)
+            .await?;
+
+        Ok(count.0 > 0)
+    }
+
+    /// 管理者用の初期招待を作成（システム起動時用）
+    pub async fn create_system_invitation(
+        pool: &MySqlPool,
+        email: Option<&str>,
+    ) -> Result<Invitation, sqlx::Error> {
+        let invitation_id = Uuid::new_v4();
+        let token = Uuid::new_v4();
+        let now = Utc::now();
+        // 初期招待は1週間有効
+        let expires_at = now + Duration::hours(24 * 7); // 7 days
+
+        // システム招待なので invited_by は NULL
+        sqlx::query(
+            r#"
+            INSERT INTO invitations (id, email, token, invited_by, expires_at, created_at)
+            VALUES (?, ?, ?, NULL, ?, ?)
+            "#,
+        )
+        .bind(invitation_id.to_string())
+        .bind(email)
+        .bind(token.to_string())
+        .bind(expires_at)
+        .bind(now)
+        .execute(pool)
+        .await?;
+
+        let invitation = Invitation {
+            id: invitation_id,
+            email: email.map(|s| s.to_string()),
+            token,
+            invited_by: Uuid::nil(), // システム招待を示すためnil UUID
+            expires_at,
+            used_at: None,
+            used_by: None,
+            created_at: now,
+        };
+
+        Ok(invitation)
+    }
+
     /// ユーザー名でユーザーを取得
     pub async fn get_user_by_username(
         pool: &MySqlPool,
