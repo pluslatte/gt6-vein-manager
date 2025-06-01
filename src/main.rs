@@ -112,7 +112,25 @@ async fn get_veins_all(State(state): State<AppState>) -> Result<Json<Vec<Vein>>,
 async fn serve_index() -> Html<String> {
     match tokio::fs::read_to_string("/home/latte/gt6-vein-manager/public/index.html").await {
         Ok(content) => Html(content),
-        Err(_) => Html("<h1>Error: index.html not found</h1>".to_string()),
+        Err(_) => Html(
+            r#"
+            <!DOCTYPE html>
+            <html lang="ja">
+            <head>
+                <meta charset="UTF-8">
+                <title>エラー</title>
+                <link rel="stylesheet" href="styles.css">
+            </head>
+            <body class="error-page">
+                <h1>エラー</h1>
+                <div class="error">
+                    <p>index.html が見つかりませんでした。</p>
+                </div>
+            </body>
+            </html>
+            "#
+            .to_string(),
+        ),
     }
 }
 
@@ -171,11 +189,17 @@ async fn search_veins(
             Html(
                 r#"
                 <!DOCTYPE html>
-                <html>
-                <head><title>エラー</title></head>
-                <body>
+                <html lang="ja">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>エラー</title>
+                    <link rel="stylesheet" href="styles.css">
+                </head>
+                <body class="error-page">
                     <h1>検索エラー</h1>
-                    <p>データベースエラーが発生しました。</p>
+                    <div class="error">
+                        <p>データベースエラーが発生しました。</p>
+                    </div>
                     <a href="/">戻る</a>
                 </body>
                 </html>
