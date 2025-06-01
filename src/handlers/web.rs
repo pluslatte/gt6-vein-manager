@@ -88,7 +88,7 @@ fn generate_search_results_html(veins: Vec<Vein>, query: &SearchQuery) -> Html<S
     let results_html = if veins.is_empty() {
         "<p>検索条件に一致する鉱脈が見つかりませんでした。</p>".to_string()
     } else {
-        generate_veins_table(veins)
+        generate_veins_table(veins, query)
     };
 
     Html(format!(
@@ -118,7 +118,7 @@ fn generate_search_results_html(veins: Vec<Vein>, query: &SearchQuery) -> Html<S
     ))
 }
 
-fn generate_veins_table(veins: Vec<Vein>) -> String {
+fn generate_veins_table(veins: Vec<Vein>, query: &SearchQuery) -> String {
     let mut html = format!("<p>{} 件の鉱脈が見つかりました。</p>", veins.len());
     html.push_str("<table>");
     html.push_str(
@@ -144,43 +144,84 @@ fn generate_veins_table(veins: Vec<Vein>) -> String {
     for vein in veins {
         let row_class = if vein.revoked { "revoked-vein" } else { "" };
 
+        let button_builder = |vein_id: &str,
+                              target_state: &str,
+                              target_operation: &str,
+                              button_state: &str,
+                              button_text: &str,
+                              confirm_msg: Option<&str>| {
+            let confirm_attr = if let Some(msg) = confirm_msg {
+                format!("onclick=\"return confirm('{}')\"", msg)
+            } else {
+                "".to_string()
+            };
+            format!(
+                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/{}/{}\"><button type=\"submit\" class=\"action-btn {}\" {}>{}</button></form>",
+                vein_id, target_state, target_operation, button_state, confirm_attr, button_text
+            )
+        };
+
         let confirmation_button = if vein.revoked {
             "".to_string()
         } else if vein.confirmed {
-            format!(
-                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/confirmation/revoke\"><button type=\"submit\" class=\"action-btn confirmed\">視認解除</button></form>",
-                vein.id
+            button_builder(
+                &vein.id,
+                "confirmation",
+                "revoke",
+                "confirmed",
+                "視認解除",
+                None,
             )
         } else {
-            format!(
-                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/confirmation/set\"><button type=\"submit\" class=\"action-btn confirm\">視認済みにする</button></form>",
-                vein.id
+            button_builder(
+                &vein.id,
+                "confirmation",
+                "set",
+                "confirm",
+                "視認済みにする",
+                None,
             )
         };
 
         let depletion_button = if vein.revoked {
             "".to_string()
         } else if vein.depleted {
-            format!(
-                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/depletion/revoke\"><button type=\"submit\" class=\"action-btn depleted\">枯渇解除</button></form>",
-                vein.id
+            button_builder(
+                &vein.id,
+                "depletion",
+                "revoke",
+                "depleted",
+                "枯渇解除",
+                None,
             )
         } else {
-            format!(
-                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/depletion/set\"><button type=\"submit\" class=\"action-btn deplete\">枯渇済みにする</button></form>",
-                vein.id
+            button_builder(
+                &vein.id,
+                "depletion",
+                "set",
+                "deplete",
+                "枯渇済みにする",
+                None,
             )
         };
 
         let revocation_button = if vein.revoked {
-            format!(
-                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/revocation/revoke\"><button type=\"submit\" class=\"action-btn revoke\" onclick=\"return confirm('この鉱脈を復元しますか？')\">復元</button></form>",
-                vein.id
+            button_builder(
+                &vein.id,
+                "revocation",
+                "revoke",
+                "revoked",
+                "復元",
+                Some("この鉱脈を復元しますか？"),
             )
         } else {
-            format!(
-                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/revocation/set\"><button type=\"submit\" class=\"action-btn revoke\" onclick=\"return confirm('この鉱脈を取り下げますか？')\">取り下げ</button></form>",
-                vein.id
+            button_builder(
+                &vein.id,
+                "revocation",
+                "set",
+                "revoke",
+                "取り下げ",
+                Some("この鉱脈を取り下げますか？"),
             )
         };
 
