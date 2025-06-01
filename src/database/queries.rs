@@ -45,6 +45,7 @@ pub async fn search_veins(
 ) -> Result<Vec<Vein>, sqlx::Error> {
     let mut query = BASE_QUERY.to_string();
     let mut conditions = Vec::new();
+    let mut bind_values = Vec::new();
 
     // 取り下げられた鉱脈を含めるかどうかの条件
     if !search_query.should_include_revoked() {
@@ -52,7 +53,8 @@ pub async fn search_veins(
     }
 
     if let Some(name) = search_query.get_name_filter() {
-        conditions.push(format!("v.name LIKE '%{}%'", name.replace("'", "''")));
+        conditions.push("v.name LIKE ?".to_string());
+        bind_values.push(format!("%{}%", name.replace("'", "''")));
     }
 
     if !conditions.is_empty() {
@@ -62,7 +64,12 @@ pub async fn search_veins(
 
     query.push_str(" ORDER BY v.created_at DESC");
 
-    sqlx::query_as::<_, Vein>(&query).fetch_all(pool).await
+    let mut sql_query = sqlx::query_as::<_, Vein>(&query);
+    for value in bind_values {
+        sql_query = sql_query.bind(value);
+    }
+
+    sql_query.fetch_all(pool).await
 }
 
 pub async fn insert_vein(
