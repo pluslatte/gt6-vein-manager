@@ -18,7 +18,7 @@ pub struct Invitation {
     pub id: String,
     pub email: Option<String>,
     pub token: String,
-    pub invited_by: String,
+    pub invited_by: Option<String>,
     pub expires_at: DateTime<Utc>,
     pub used_at: Option<DateTime<Utc>>,
     pub used_by: Option<String>,

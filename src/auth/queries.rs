@@ -47,7 +47,7 @@ impl AuthQueries {
             id: invitation_id,
             email: email.map(|s| s.to_string()),
             token,
-            invited_by: Uuid::nil().to_string(), // システム招待を示すためnil UUID
+            invited_by: None, // システム招待なので None
             expires_at,
             used_at: None,
             used_by: None,
@@ -159,7 +159,7 @@ impl AuthQueries {
             id: invitation_id,
             email: email.map(|s| s.to_string()),
             token,
-            invited_by: invited_by.to_string(),
+            invited_by: Some(invited_by.to_string()),
             expires_at,
             used_at: None,
             used_by: None,

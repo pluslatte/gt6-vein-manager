@@ -5,7 +5,6 @@ use axum::{
     response::{Html, Json, Redirect},
 };
 use serde::Deserialize;
-use uuid::Uuid;
 
 use crate::{
     auth::{AuthQueries, AuthSession, Credentials},
@@ -116,7 +115,7 @@ pub async fn logout_handler(
 // 登録ページ表示
 #[derive(Deserialize)]
 pub struct RegisterQuery {
-    token: Option<Uuid>,
+    token: Option<String>,
 }
 
 pub async fn register_page(Query(query): Query<RegisterQuery>) -> Html<String> {
@@ -233,20 +232,16 @@ pub async fn register_handler(
     }
 
     // ユーザー作成
-    // システム招待（invited_by が nil UUID）の場合は管理者権限を付与
-    let is_admin = invitation.invited_by == Uuid::nil().to_string();
-    let invited_by = if is_admin {
-        None
-    } else {
-        Some(invitation.invited_by)
-    };
+    // システム招待（invited_by が None）の場合は管理者権限を付与
+    let is_admin = invitation.invited_by.is_none();
+    let invited_by = invitation.invited_by.as_deref();
 
     let user = AuthQueries::create_user(
         &state.db_pool,
         &form.username,
         form.email.as_deref(),
         &form.password,
-        invited_by.as_deref(),
+        invited_by,
         is_admin,
     )
     .await
