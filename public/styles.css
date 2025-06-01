@@ -404,6 +404,25 @@ tr:hover {
     }
 }
 
+/* 取り下げられた鉱脈のスタイル */
+tr.revoked-vein {
+    background-color: rgba(146, 131, 116, 0.1) !important;
+    opacity: 0.6;
+}
+
+tr.revoked-vein:hover {
+    background-color: rgba(146, 131, 116, 0.2) !important;
+}
+
+tr.revoked-vein td {
+    color: var(--gray);
+    text-decoration: line-through;
+}
+
+tr.revoked-vein td:last-child {
+    text-decoration: none;
+}
+
 /* アニメーション */
 .container {
     animation: fadeIn 0.3s ease-in;

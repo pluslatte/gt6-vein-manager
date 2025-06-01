@@ -57,11 +57,21 @@ pub async fn vein_depletion_revoke(
     }
 }
 
-pub async fn update_vein_revocation(
+pub async fn vein_revocation_set(
     State(state): State<AppState>,
     Path(vein_id): Path<String>,
 ) -> Result<Redirect, StatusCode> {
-    match insert_vein_revocation(&state.db_pool, &vein_id).await {
+    match insert_vein_revocation(&state.db_pool, &vein_id, true).await {
+        Ok(_) => Ok(Redirect::to("/search")),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn vein_revocation_revoke(
+    State(state): State<AppState>,
+    Path(vein_id): Path<String>,
+) -> Result<Redirect, StatusCode> {
+    match insert_vein_revocation(&state.db_pool, &vein_id, false).await {
         Ok(_) => Ok(Redirect::to("/search")),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }

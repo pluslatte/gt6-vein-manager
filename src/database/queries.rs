@@ -37,12 +37,13 @@ const BASE_QUERY: &str = r#"
                 WHERE vr2.vein_id = vr1.vein_id
             )
         ) vr ON v.id = vr.vein_id
-    WHERE
-        (vr.revoked IS NULL OR vr.revoked = FALSE)
 "#;
 
 pub async fn get_all_veins(pool: &MySqlPool) -> Result<Vec<Vein>, sqlx::Error> {
-    let query = format!("{} ORDER BY v.created_at DESC", BASE_QUERY);
+    let query = format!(
+        "{} WHERE (vr.revoked IS NULL OR vr.revoked = FALSE) ORDER BY v.created_at DESC",
+        BASE_QUERY
+    );
 
     sqlx::query_as::<_, Vein>(&query).fetch_all(pool).await
 }
@@ -54,16 +55,21 @@ pub async fn search_veins(
     let mut query = BASE_QUERY.to_string();
     let mut conditions = Vec::new();
 
+    // 取り下げられた鉱脈を含めるかどうかの条件
+    if !search_query.should_include_revoked() {
+        conditions.push("(vr.revoked IS NULL OR vr.revoked = FALSE)".to_string());
+    }
+
     if let Some(name) = search_query.get_name_filter() {
-        conditions.push(format!("name LIKE '%{}%'", name.replace("'", "''")));
+        conditions.push(format!("v.name LIKE '%{}%'", name.replace("'", "''")));
     }
 
     if !conditions.is_empty() {
-        query.push_str(" AND ");
+        query.push_str(" WHERE ");
         query.push_str(&conditions.join(" AND "));
     }
 
-    query.push_str(" ORDER BY created_at DESC");
+    query.push_str(" ORDER BY v.created_at DESC");
 
     sqlx::query_as::<_, Vein>(&query).fetch_all(pool).await
 }
@@ -95,7 +101,11 @@ pub async fn insert_vein(
     Ok(())
 }
 
-pub async fn insert_vein_confirmation(pool: &MySqlPool, vein_id: &str, confirmed: bool) -> Result<(), sqlx::Error> {
+pub async fn insert_vein_confirmation(
+    pool: &MySqlPool,
+    vein_id: &str,
+    confirmed: bool,
+) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
         INSERT INTO vein_confirmations (id, vein_id, confirmed)
@@ -111,7 +121,11 @@ pub async fn insert_vein_confirmation(pool: &MySqlPool, vein_id: &str, confirmed
     Ok(())
 }
 
-pub async fn insert_vein_depletion(pool: &MySqlPool, vein_id: &str, depleted: bool) -> Result<(), sqlx::Error> {
+pub async fn insert_vein_depletion(
+    pool: &MySqlPool,
+    vein_id: &str,
+    depleted: bool,
+) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
         INSERT INTO vein_depletions (id, vein_id, depleted)
@@ -127,15 +141,20 @@ pub async fn insert_vein_depletion(pool: &MySqlPool, vein_id: &str, depleted: bo
     Ok(())
 }
 
-pub async fn insert_vein_revocation(pool: &MySqlPool, vein_id: &str) -> Result<(), sqlx::Error> {
+pub async fn insert_vein_revocation(
+    pool: &MySqlPool,
+    vein_id: &str,
+    revoked: bool,
+) -> Result<(), sqlx::Error> {
     sqlx::query(
         r#"
         INSERT INTO vein_revokations (id, vein_id, revoked)
-        VALUES (?, ?, TRUE)
+        VALUES (?, ?, ?)
         "#,
     )
     .bind(Uuid::new_v4().to_string())
     .bind(vein_id)
+    .bind(revoked)
     .execute(pool)
     .await?;
 

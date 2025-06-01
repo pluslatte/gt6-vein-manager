@@ -3,6 +3,7 @@ use serde::Deserialize;
 #[derive(Debug, Deserialize)]
 pub struct SearchQuery {
     pub name: Option<String>,
+    pub include_revoked: Option<bool>,
 }
 
 impl SearchQuery {
@@ -17,6 +18,10 @@ impl SearchQuery {
             .as_ref()
             .filter(|name| !name.trim().is_empty())
             .map(|s| s.as_str())
+    }
+
+    pub fn should_include_revoked(&self) -> bool {
+        self.include_revoked.unwrap_or(false)
     }
 }
 

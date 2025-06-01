@@ -75,11 +75,15 @@ pub async fn add_vein_handler(
 }
 
 fn generate_search_results_html(veins: Vec<Vein>, query: &SearchQuery) -> Html<String> {
-    let search_info = if query.has_name_filter() {
+    let mut search_info = if query.has_name_filter() {
         format!("検索条件: 名前: {}", query.name.as_ref().unwrap())
     } else {
         "全ての鉱脈".to_string()
     };
+
+    if query.should_include_revoked() {
+        search_info.push_str(" (取り下げられた鉱脈を含む)");
+    }
 
     let results_html = if veins.is_empty() {
         "<p>検索条件に一致する鉱脈が見つかりませんでした。</p>".to_string()
@@ -129,6 +133,7 @@ fn generate_veins_table(veins: Vec<Vein>) -> String {
                 <th>メモ</th>
                 <th>視認済み</th>
                 <th>枯渇済み</th>
+                <th>取り下げ</th>
                 <th>登録日時</th>
                 <th>操作</th>
             </tr>
@@ -138,7 +143,11 @@ fn generate_veins_table(veins: Vec<Vein>) -> String {
     );
 
     for vein in veins {
-        let confirmation_button = if vein.confirmed {
+        let row_class = if vein.revoked { "revoked-vein" } else { "" };
+
+        let confirmation_button = if vein.revoked {
+            "".to_string()
+        } else if vein.confirmed {
             format!(
                 "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/confirmation/revoke\"><button type=\"submit\" class=\"action-btn confirmed\">視認解除</button></form>",
                 vein.id
@@ -150,7 +159,9 @@ fn generate_veins_table(veins: Vec<Vein>) -> String {
             )
         };
 
-        let depletion_button = if vein.depleted {
+        let depletion_button = if vein.revoked {
+            "".to_string()
+        } else if vein.depleted {
             format!(
                 "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/depletion/revoke\"><button type=\"submit\" class=\"action-btn depleted\">枯渇解除</button></form>",
                 vein.id
@@ -162,15 +173,23 @@ fn generate_veins_table(veins: Vec<Vein>) -> String {
             )
         };
 
-        let revocation_button = format!(
-            "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/revoke\"><button type=\"submit\" class=\"action-btn revoke\" onclick=\"return confirm('この鉱脈を取り下げますか？')\">取り下げ</button></form>",
-            vein.id
-        );
+        let revocation_button = if vein.revoked {
+            format!(
+                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/revocation/revoke\"><button type=\"submit\" class=\"action-btn revoke\" onclick=\"return confirm('この鉱脈を復元しますか？')\">復元</button></form>",
+                vein.id
+            )
+        } else {
+            format!(
+                "<form style=\"display: inline;\" method=\"post\" action=\"/api/veins/{}/revocation/set\"><button type=\"submit\" class=\"action-btn revoke\" onclick=\"return confirm('この鉱脈を取り下げますか？')\">取り下げ</button></form>",
+                vein.id
+            )
+        };
 
         html.push_str(&format!(
             r#"
-            <tr>
+            <tr class="{}">
                 <td><strong>{}</strong></td>
+                <td>{}</td>
                 <td>{}</td>
                 <td>{}</td>
                 <td>{}</td>
@@ -185,6 +204,7 @@ fn generate_veins_table(veins: Vec<Vein>) -> String {
                 </td>
             </tr>
             "#,
+            row_class,
             vein.name,
             vein.x_coord,
             vein.z_coord,
@@ -192,6 +212,7 @@ fn generate_veins_table(veins: Vec<Vein>) -> String {
             vein.format_notes(),
             vein.confirmed_symbol(),
             vein.depleted_symbol(),
+            vein.revoked_symbol(),
             vein.format_created_at(),
             confirmation_button,
             depletion_button,

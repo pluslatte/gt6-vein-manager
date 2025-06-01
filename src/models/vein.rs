@@ -12,6 +12,7 @@ pub struct Vein {
     pub notes: Option<String>,
     pub confirmed: bool,
     pub depleted: bool,
+    pub revoked: bool,
     pub created_at: Option<DateTime<Utc>>,
 }
 
@@ -38,5 +39,9 @@ impl Vein {
 
     pub fn depleted_symbol(&self) -> &'static str {
         if self.depleted { "✓" } else { "✗" }
+    }
+
+    pub fn revoked_symbol(&self) -> &'static str {
+        if self.revoked { "✓" } else { "✗" }
     }
 }
