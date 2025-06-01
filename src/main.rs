@@ -66,9 +66,47 @@ async fn main() -> anyhow::Result<()> {
             y_coord INT DEFAULT NULL,
             z_coord INT NOT NULL,
             notes TEXT,
-            confirmed BOOLEAN DEFAULT FALSE,
-            depleted BOOLEAN DEFAULT FALSE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        "#,
+    )
+    .execute(&pool)
+    .await?;
+
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS vein_confirmations (
+            id VARCHAR(36) PRIMARY KEY,
+            vein_id VARCHAR(36) NOT NULL,
+            confirmed BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vein_id) REFERENCES veins(id) ON DELETE CASCADE
+        )"#,
+    )
+    .execute(&pool)
+    .await?;
+
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS vein_depletions (
+            id VARCHAR(36) PRIMARY KEY,
+            vein_id VARCHAR(36) NOT NULL,
+            depleted BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vein_id) REFERENCES veins(id) ON DELETE CASCADE
+        )"#,
+    )
+    .execute(&pool)
+    .await?;
+
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS vein_revokations (
+            id VARCHAR(36) PRIMARY KEY,
+            vein_id VARCHAR(36) NOT NULL,
+            revoked BOOLEAN DEFAULT FALSE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (vein_id) REFERENCES veins(id) ON DELETE CASCADE
         )
         "#,
     )
