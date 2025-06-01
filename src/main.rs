@@ -213,85 +213,46 @@ async fn search_veins(
 async fn add_vein(State(state): State<AppState>, Form(form): Form<AddVeinForm>) -> Html<String> {
     let id = Uuid::new_v4().to_string();
 
+    // Helper function for error HTML
+    fn coord_error_html(coord_name: &str) -> Html<String> {
+        Html(format!(
+            r#"
+            <!DOCTYPE html>
+            <html lang="ja">
+            <head>
+                <meta charset="UTF-8">
+                <title>エラー</title>
+                <link rel="stylesheet" href="styles.css">
+            </head>
+            <body class="error-page">
+                <h1>追加エラー</h1>
+                <div class="error">
+                    {}座標が正しい整数ではありません。<br>
+                </div>
+                <a href="/">戻る</a>
+            </body>
+            </html>
+            "#,
+            coord_name
+        ))
+    }
+
     // Validate and parse coordinates
     let x_coord = match form.x_coord.parse::<i32>() {
         Ok(val) => val,
-        Err(_) => {
-            return Html(
-                r#"
-                <!DOCTYPE html>
-                <html lang="ja">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>エラー</title>
-                    <link rel="stylesheet" href="styles.css">
-                </head>
-                <body class="error-page">
-                    <h1>追加エラー</h1>
-                    <div class="error">
-                        X座標が正しい整数ではありません。<br>
-                    </div>
-                    <a href="/">戻る</a>
-                </body>
-                </html>
-                "#
-                .to_string(),
-            );
-        }
+        Err(_) => return coord_error_html("X"),
     };
     let y_coord = if form.y_coord.trim().is_empty() {
         None
     } else {
         match form.y_coord.parse::<i32>() {
             Ok(val) => Some(val),
-            Err(_) => {
-                return Html(
-                    r#"
-                    <!DOCTYPE html>
-                    <html lang="ja">
-                    <head>
-                        <meta charset="UTF-8">
-                        <title>エラー</title>
-                        <link rel="stylesheet" href="styles.css">
-                    </head>
-                    <body class="error-page">
-                        <h1>追加エラー</h1>
-                        <div class="error">
-                            Y座標が正しい整数ではありません。<br>
-                        </div>
-                        <a href="/">戻る</a>
-                    </body>
-                    </html>
-                    "#
-                    .to_string(),
-                );
-            }
+            Err(_) => return coord_error_html("Y"),
         }
     };
     let z_coord = match form.z_coord.parse::<i32>() {
         Ok(val) => val,
-        Err(_) => {
-            return Html(
-                r#"
-                <!DOCTYPE html>
-                <html lang="ja">
-                <head>
-                    <meta charset="UTF-8">
-                    <title>エラー</title>
-                    <link rel="stylesheet" href="styles.css">
-                </head>
-                <body class="error-page">
-                    <h1>追加エラー</h1>
-                    <div class="error">
-                        Z座標が正しい整数ではありません。<br>
-                    </div>
-                    <a href="/">戻る</a>
-                </body>
-                </html>
-                "#
-                .to_string(),
-            );
-        }
+        Err(_) => return coord_error_html("Z"),
     };
 
     let result = sqlx::query(
