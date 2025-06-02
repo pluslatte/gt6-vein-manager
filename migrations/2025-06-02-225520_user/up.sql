@@ -10,5 +10,5 @@ CREATE TABLE user (
     invited_by CHAR(36),
     INDEX idx_username (username),
     INDEX idx_email (email),
-    FOREIGN KEY (invited_by) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (invited_by) REFERENCES user(id) ON DELETE SET NULL
 );

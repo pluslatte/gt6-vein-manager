@@ -4,5 +4,5 @@ CREATE TABLE vein_revocation (
     vein_id VARCHAR(36) NOT NULL,
     revoked BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (vein_id) REFERENCES veins(id) ON DELETE CASCADE
+    FOREIGN KEY (vein_id) REFERENCES vein(id) ON DELETE CASCADE
 );
