@@ -99,7 +99,7 @@ fn generate_search_results_html(veins: Vec<Vein>, query: &SearchQuery) -> Html<S
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>検索結果 - GT6 鉱脈マネージャー</title>
-            <link rel="stylesheet" href="styles.css">
+            <link rel="stylesheet" href="/styles.css">
         </head>
         <body>
             <div class="container">
@@ -279,7 +279,7 @@ fn generate_coord_error_html(coord_name: &str) -> String {
         <head>
             <meta charset="UTF-8">
             <title>エラー</title>
-            <link rel="stylesheet" href="styles.css">
+            <link rel="stylesheet" href="/styles.css">
         </head>
         <body class="error-page">
             <h1>追加エラー</h1>
@@ -301,7 +301,7 @@ fn generate_database_error_html() -> String {
     <head>
         <meta charset="UTF-8">
         <title>エラー</title>
-        <link rel="stylesheet" href="styles.css">
+        <link rel="stylesheet" href="/styles.css">
     </head>
     <body class="error-page">
         <h1>データベースエラー</h1>
@@ -324,7 +324,7 @@ fn generate_success_html(form: &AddVeinForm, id: &str) -> String {
         <head>
             <meta charset="UTF-8">
             <title>追加完了</title>
-            <link rel="stylesheet" href="styles.css">
+            <link rel="stylesheet" href="/styles.css">
         </head>
         <body class="result-page">
             <h1>鉱脈追加完了</h1>

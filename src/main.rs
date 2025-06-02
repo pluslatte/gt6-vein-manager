@@ -89,7 +89,7 @@ async fn main() -> anyhow::Result<()> {
             post(vein_revocation_revoke),
         )
         .route("/search", get(search_veins_handler))
-        .route("/add", post(add_vein_handler))
+        .route("/api/veins/add", post(add_vein_handler))
         // 静的ファイル（認証不要）
         .route("/", get(serve_index))
         .route("/index.html", get(serve_index))
