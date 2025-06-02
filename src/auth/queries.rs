@@ -3,7 +3,7 @@ use sqlx::MySqlPool;
 use uuid::Uuid;
 
 use crate::auth::utils::{INVITATION_DURATION_HOURS, hash_password};
-use crate::models::{ApiKey, Invitation, User};
+use crate::models::{Invitation, User};
 
 pub struct AuthQueries;
 
@@ -203,109 +203,5 @@ impl AuthQueries {
             .await?;
 
         Ok(())
-    }
-
-    /// ユーザーのAPI keyを取得
-    pub async fn get_user_api_keys(
-        pool: &MySqlPool,
-        user_id: &str,
-    ) -> Result<Vec<ApiKey>, sqlx::Error> {
-        let keys = sqlx::query_as::<_, ApiKey>(
-            "SELECT * FROM user_api_keys WHERE user_id = ? ORDER BY created_at DESC",
-        )
-        .bind(user_id)
-        .fetch_all(pool)
-        .await?;
-
-        Ok(keys)
-    }
-
-    /// API keyで認証
-    pub async fn authenticate_api_key(
-        pool: &MySqlPool,
-        key_hash: &str,
-    ) -> Result<Option<User>, sqlx::Error> {
-        let user = sqlx::query_as::<_, User>(
-            r#"
-            SELECT u.* FROM users u
-            INNER JOIN user_api_keys ak ON u.id = ak.user_id
-            WHERE ak.key_hash = ? AND ak.revoked_at IS NULL AND u.is_active = TRUE
-            "#,
-        )
-        .bind(key_hash)
-        .fetch_optional(pool)
-        .await?;
-
-        if user.is_some() {
-            // 最終使用時刻を更新
-            let now = Utc::now();
-            sqlx::query("UPDATE user_api_keys SET last_used_at = ? WHERE key_hash = ?")
-                .bind(now)
-                .bind(key_hash)
-                .execute(pool)
-                .await?;
-        }
-
-        Ok(user)
-    }
-
-    /// API keyを作成
-    pub async fn create_api_key(
-        pool: &MySqlPool,
-        user_id: &str,
-        key_name: &str,
-        key_hash: &str,
-        key_prefix: &str,
-    ) -> Result<ApiKey, sqlx::Error> {
-        let key_id = Uuid::new_v4().to_string();
-        let now = Utc::now();
-
-        sqlx::query(
-            r#"
-            INSERT INTO user_api_keys (id, user_id, key_name, key_hash, key_prefix, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
-            "#,
-        )
-        .bind(key_id.to_string())
-        .bind(user_id.to_string())
-        .bind(key_name)
-        .bind(key_hash)
-        .bind(key_prefix)
-        .bind(now)
-        .execute(pool)
-        .await?;
-
-        let api_key = ApiKey {
-            id: key_id,
-            user_id: user_id.to_string(),
-            key_name: key_name.to_string(),
-            key_hash: key_hash.to_string(),
-            key_prefix: key_prefix.to_string(),
-            last_used_at: None,
-            created_at: now,
-            revoked_at: None,
-        };
-
-        Ok(api_key)
-    }
-
-    /// API keyを無効化
-    pub async fn revoke_api_key(
-        pool: &MySqlPool,
-        key_id: &str,
-        user_id: &str,
-    ) -> Result<bool, sqlx::Error> {
-        let now = Utc::now();
-
-        let result = sqlx::query(
-            "UPDATE user_api_keys SET revoked_at = ? WHERE id = ? AND user_id = ? AND revoked_at IS NULL"
-        )
-        .bind(now)
-        .bind(key_id)
-        .bind(user_id)
-        .execute(pool)
-        .await?;
-
-        Ok(result.rows_affected() > 0)
     }
 }

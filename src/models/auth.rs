@@ -25,42 +25,6 @@ pub struct Invitation {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
-pub struct ApiKey {
-    pub id: String,
-    pub user_id: String,
-    pub key_name: String,
-    pub key_hash: String,
-    pub key_prefix: String,
-    pub last_used_at: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub revoked_at: Option<DateTime<Utc>>,
-}
-
-// API keyの表示用（実際のキーは含まない）
-#[derive(Debug, Serialize)]
-pub struct ApiKeyDisplay {
-    pub id: String,
-    pub key_name: String,
-    pub key_prefix: String,
-    pub last_used_at: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub is_revoked: bool,
-}
-
-impl From<ApiKey> for ApiKeyDisplay {
-    fn from(key: ApiKey) -> Self {
-        Self {
-            id: key.id,
-            key_name: key.key_name,
-            key_prefix: key.key_prefix,
-            last_used_at: key.last_used_at,
-            created_at: key.created_at,
-            is_revoked: key.revoked_at.is_some(),
-        }
-    }
-}
-
 // フォーム用構造体
 #[derive(Debug, Deserialize)]
 pub struct LoginForm {
@@ -81,20 +45,6 @@ pub struct RegisterForm {
 pub struct InviteForm {
     pub email: Option<String>,
     pub expires_hours: Option<u32>, // デフォルト8時間
-}
-
-#[derive(Debug, Deserialize)]
-pub struct CreateApiKeyForm {
-    pub key_name: String,
-}
-
-// API key生成時のレスポンス（一度だけ表示）
-#[derive(Debug, Serialize)]
-pub struct ApiKeyResponse {
-    pub id: String,
-    pub key_name: String,
-    pub api_key: String, // gt6veinmanager_xxxxxxxxxxxx 形式
-    pub created_at: DateTime<Utc>,
 }
 
 // 招待リンクのレスポンス
