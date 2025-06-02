@@ -9,15 +9,10 @@ pub struct AppState {
 pub async fn initialize_database() -> Result<MySqlPool> {
     dotenv::dotenv().ok();
 
-    let mut database_url =
+    let database_url =
         std::env::var("DATABASE_URL").expect("DATABASE_URL environment variable is not set.");
-    let database_name =
-        std::env::var("DATABASE_NAME").expect("DATABASE_NAME environment variable is not set.");
 
-    if database_url.ends_with('/') {
-        database_url.pop();
-    }
-    let pool = MySqlPool::connect(format!("{}/{}", &database_url, &database_name).as_str()).await?;
+    let pool = MySqlPool::connect(&database_url).await?;
     println!("Connected to the database at {}", database_url);
 
     ensure_tables(&pool).await?;
