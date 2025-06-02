@@ -38,14 +38,6 @@ pub async fn login_page() -> Html<&'static str> {
                 <label for="password">パスワード</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            
-            <div class="form-group">
-                <div class="checkbox-group">
-                    <input type="checkbox" id="remember_me" name="remember_me" value="true">
-                    <label for="remember_me">ログイン状態を保持する (7日間)</label>
-                </div>
-            </div>
-            
             <button type="submit">ログイン</button>
         </form>
         
@@ -67,17 +59,10 @@ pub async fn login_handler(
     let creds = Credentials {
         username: form.username.clone(),
         password: form.password.clone(),
-        remember_me: form.remember_me,
     };
 
     match auth_session.authenticate(creds).await {
         Ok(Some(user)) => {
-            // Remember me が有効な場合、セッションの有効期限を延長
-            if form.remember_me.unwrap_or(false) {
-                // セッション期間を7日間に設定
-                // これはmain.rsでセッション設定時に処理する
-            }
-
             auth_session.login(&user).await.map_err(|e| {
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,

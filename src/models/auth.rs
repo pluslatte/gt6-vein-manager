@@ -30,7 +30,6 @@ pub struct Invitation {
 pub struct LoginForm {
     pub username: String,
     pub password: String,
-    pub remember_me: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]

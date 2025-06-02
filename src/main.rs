@@ -20,6 +20,8 @@ use handlers::{
     vein_revocation_set,
 };
 
+use crate::auth::SESSION_DURATION_DAYS;
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
@@ -45,7 +47,7 @@ async fn main() -> anyhow::Result<()> {
 
     // セッション管理の設定（7日間有効）
     let session_layer = SessionManagerLayer::new(session_store)
-        .with_expiry(Expiry::OnInactivity(Duration::days(7)));
+        .with_expiry(Expiry::OnInactivity(Duration::days(SESSION_DURATION_DAYS)));
 
     // 認証バックエンドの設定
     let auth_backend = AuthBackend::new(pool.clone());

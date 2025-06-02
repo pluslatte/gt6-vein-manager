@@ -149,7 +149,6 @@ impl AuthBackend {
 pub struct Credentials {
     pub username: String,
     pub password: String,
-    pub remember_me: Option<bool>,
 }
 
 #[async_trait::async_trait]
