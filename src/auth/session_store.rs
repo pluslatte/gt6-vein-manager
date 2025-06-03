@@ -7,7 +7,7 @@ use diesel_async::{AsyncMysqlConnection, RunQueryDsl};
 use gt6_vein_manager::schema::sessions;
 use tower_sessions::{
     SessionStore,
-    session::{Id, Record},
+    session::{self, Id, Record},
     session_store,
 };
 
@@ -36,7 +36,50 @@ impl DieselSessionStore {
 #[async_trait::async_trait]
 impl SessionStore for DieselSessionStore {
     async fn create(&self, record: &mut Record) -> session_store::Result<()> {
-        todo!("Implement create session logic using Diesel");
+        let mut connection = self.pool.get().await.map_err(|e| {
+            session_store::Error::Backend(format!("Failed to get connection: {}", e))
+        })?;
+
+        let data_str = serialize_session_data(&record.data)?;
+        let expiry_naive = offset_to_naive_datetime(record.expiry_date);
+
+        // To avoid duplicate session IDs
+        loop {
+            let session_id_str = record.id.to_string();
+
+            // Check if the session ID already exists
+            let existing_session: Option<Session> = sessions::table
+                .filter(sessions::id.eq(&session_id_str))
+                .first(&mut connection)
+                .await
+                .optional()
+                .map_err(|e| {
+                    session_store::Error::Backend(format!("Failed to check session: {}", e))
+                })?;
+
+            if existing_session.is_none() {
+                // Create a new session object
+                let new_session = NewSession {
+                    id: session_id_str,
+                    data: data_str,
+                    expiry_date: expiry_naive,
+                };
+
+                // Insert new session
+                diesel::insert_into(sessions::table)
+                    .values(new_session)
+                    .execute(&mut connection)
+                    .await
+                    .map_err(|e| {
+                        session_store::Error::Backend(format!("Failed to create session: {}", e))
+                    })?;
+
+                return Ok(());
+            } else {
+                // If the session ID already exists, generate a new one
+                record.id = Id::default();
+            }
+        }
     }
 
     async fn save(&self, record: &Record) -> session_store::Result<()> {
