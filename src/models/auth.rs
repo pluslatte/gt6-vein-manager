@@ -2,7 +2,7 @@ use chrono::{DateTime, NaiveDateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Queryable, Selectable)]
+#[derive(Queryable, Selectable, Clone, Debug)]
 #[diesel(table_name = gt6_vein_manager::schema::user)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct User {
