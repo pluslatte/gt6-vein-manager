@@ -14,6 +14,7 @@ pub struct Vein {
 }
 
 #[derive(Queryable, Selectable)]
+#[diesel(belongs_to(Vein))]
 #[diesel(table_name = gt6_vein_manager::schema::vein_confirmation)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct VeinConfirmation {
@@ -24,6 +25,7 @@ pub struct VeinConfirmation {
 }
 
 #[derive(Queryable, Selectable)]
+#[diesel(belongs_to(Vein))]
 #[diesel(table_name = gt6_vein_manager::schema::vein_depletion)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct VeinDepletion {
@@ -34,6 +36,7 @@ pub struct VeinDepletion {
 }
 
 #[derive(Queryable, Selectable)]
+#[diesel(belongs_to(Vein))]
 #[diesel(table_name = gt6_vein_manager::schema::vein_revocation)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct VeinRevocation {
@@ -44,6 +47,7 @@ pub struct VeinRevocation {
 }
 
 #[derive(Queryable, Selectable)]
+#[diesel(belongs_to(Vein))]
 #[diesel(table_name = gt6_vein_manager::schema::vein_is_bedrock)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct VeinIsBedrock {
@@ -54,6 +58,7 @@ pub struct VeinIsBedrock {
 }
 
 #[derive(Queryable, Selectable)]
+#[diesel(belongs_to(Vein))]
 #[diesel(table_name = gt6_vein_manager::schema::vein_note)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct VeinNote {
