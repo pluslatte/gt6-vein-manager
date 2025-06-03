@@ -1,6 +1,10 @@
 use std::collections::HashMap;
 
+use crate::models::{NewSession, Session};
 use chrono::NaiveDateTime;
+use diesel::prelude::*;
+use diesel_async::{AsyncMysqlConnection, RunQueryDsl};
+use gt6_vein_manager::schema::sessions;
 use tower_sessions::{
     SessionStore,
     session::{Id, Record},
@@ -43,7 +47,21 @@ impl SessionStore for DieselSessionStore {
     }
 
     async fn delete(&self, id: &Id) -> session_store::Result<()> {
-        todo!("Implement delete session logic using Diesel");
+        let mut connection = self.pool.get().await.map_err(|e| {
+            session_store::Error::Backend(format!("Failed to get connection: {}", e))
+        })?;
+
+        let session_id_str = id.to_string();
+
+        diesel::delete(sessions::table)
+            .filter(sessions::id.eq(session_id_str))
+            .execute(&mut connection)
+            .await
+            .map_err(|e| {
+                session_store::Error::Backend(format!("Failed to delete session: {}", e))
+            })?;
+
+        Ok(())
     }
 }
 
@@ -60,9 +78,18 @@ fn deserialize_session_data(
 }
 
 fn naive_datetime_to_offset(naive: NaiveDateTime) -> time::OffsetDateTime {
-    todo!("Convert NaiveDateTime to OffsetDateTime")
+    let timestamp = naive.and_utc().timestamp();
+    let nanos = naive.and_utc().timestamp_subsec_nanos();
+    time::OffsetDateTime::from_unix_timestamp_nanos(
+        (timestamp as i128) * 1_000_000_000 + nanos as i128,
+    )
+    .unwrap_or(time::OffsetDateTime::UNIX_EPOCH)
 }
 
 fn offset_to_naive_datetime(offset: time::OffsetDateTime) -> NaiveDateTime {
-    todo!("Convert OffsetDateTime to NaiveDateTime")
+    let timestamp = offset.unix_timestamp();
+    let nanos = offset.nanosecond();
+    chrono::DateTime::from_timestamp(timestamp, nanos)
+        .unwrap_or(chrono::DateTime::UNIX_EPOCH)
+        .naive_utc()
 }
