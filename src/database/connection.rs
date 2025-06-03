@@ -1,5 +1,11 @@
 use anyhow::Result;
-use diesel_async::{AsyncConnection, AsyncMysqlConnection, pooled_connection::{AsyncDieselConnectionManager, deadpool}};
+use diesel_async::{
+    AsyncConnection, AsyncMysqlConnection,
+    pooled_connection::{
+        AsyncDieselConnectionManager,
+        deadpool::{self, PoolError},
+    },
+};
 use sqlx::MySqlPool;
 
 pub type DieselPool = deadpool::Pool<AsyncMysqlConnection>;
@@ -8,6 +14,14 @@ pub type DieselPool = deadpool::Pool<AsyncMysqlConnection>;
 pub struct AppState {
     pub db_pool: MySqlPool,
     pub diesel_pool: DieselPool,
+}
+
+impl AppState {
+    pub async fn get_diesel_async_connection(
+        &self,
+    ) -> Result<deadpool::Object<AsyncMysqlConnection>, PoolError> {
+        self.diesel_pool.get().await
+    }
 }
 
 pub async fn connect_session_store_mysql() -> Result<MySqlPool> {
@@ -40,13 +54,13 @@ pub async fn create_diesel_pool() -> Result<DieselPool> {
 
     let database_url =
         std::env::var("DATABASE_URL").expect("DATABASE_URL environment variable is not set.");
-    
+
     let config = AsyncDieselConnectionManager::<AsyncMysqlConnection>::new(database_url);
     let pool = deadpool::Pool::builder(config)
         .max_size(16)
         .build()
         .map_err(|e| anyhow::anyhow!("Failed to create diesel pool: {}", e))?;
-    
+
     println!("Created diesel connection pool");
     Ok(pool)
 }

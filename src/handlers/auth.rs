@@ -1,3 +1,5 @@
+use std::ops::{Deref, DerefMut};
+
 use axum::{
     Form,
     extract::{Query, State},
@@ -170,6 +172,16 @@ pub async fn register_handler(
 ) -> Result<Redirect, (StatusCode, String)> {
     use crate::auth::utils::{validate_password, validate_username};
 
+    // データベース接続の取得
+    let mut connection = state.diesel_pool.get().await.map_err(|e| {
+        eprintln!("Failed to get database connection: {}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("データベース接続エラー: {}", e),
+        )
+    })?;
+    let connection = connection.deref_mut();
+
     println!("Registering user attempt with username: {}", &form.username);
     // バリデーション
     if let Err(e) = validate_username(&form.username) {
@@ -183,7 +195,7 @@ pub async fn register_handler(
     }
 
     // 招待トークンの検証
-    let invitation = AuthQueries::get_invitation_by_token(&state.db_pool, &form.token)
+    let invitation = AuthQueries::get_invitation_by_token(connection, &form.token)
         .await
         .map_err(|e| {
             eprintln!("Database error while fetching invitation: {}", e);
@@ -199,7 +211,7 @@ pub async fn register_handler(
     ))?;
 
     // ユーザー名の重複チェック
-    let existing_user = AuthQueries::get_user_by_username(&state.db_pool, &form.username)
+    let existing_user = AuthQueries::get_user_by_username(connection, &form.username)
         .await
         .map_err(|e| {
             eprintln!("Database error while checking existing user: {}", e);
@@ -222,7 +234,7 @@ pub async fn register_handler(
     let invited_by = invitation.invited_by.as_deref();
 
     let user = AuthQueries::create_user(
-        &state.db_pool,
+        connection,
         &form.username,
         form.email.as_deref(),
         &form.password,
@@ -239,7 +251,7 @@ pub async fn register_handler(
     })?;
 
     // 招待を使用済みにマーク
-    AuthQueries::mark_invitation_used(&state.db_pool, &form.token, &user.id)
+    AuthQueries::mark_invitation_used(connection, &form.token, &user.id)
         .await
         .map_err(|e| {
             eprintln!("Error marking invitation as used: {}", e);
@@ -271,7 +283,7 @@ pub async fn require_auth(auth_session: AuthSession) -> Result<(), Redirect> {
 // 管理者権限確認用ミドルウェア
 pub async fn require_admin(auth_session: AuthSession) -> Result<(), (StatusCode, String)> {
     match auth_session.user {
-        Some(user) if user.is_admin => Ok(()),
+        Some(user) if user.is_admin.unwrap_or(false) => Ok(()),
         Some(_) => Err((StatusCode::FORBIDDEN, "管理者権限が必要です".to_string())),
         None => Err((StatusCode::UNAUTHORIZED, "ログインが必要です".to_string())),
     }
