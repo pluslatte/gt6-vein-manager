@@ -19,6 +19,15 @@ diesel::table! {
 }
 
 diesel::table! {
+    sessions (id) {
+        #[max_length = 255]
+        id -> Varchar,
+        data -> Longtext,
+        expiry_date -> Timestamp,
+    }
+}
+
+diesel::table! {
     user (id) {
         #[max_length = 36]
         id -> Varchar,
@@ -113,6 +122,7 @@ diesel::joinable!(vein_revocation -> vein (vein_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     invitation,
+    sessions,
     user,
     vein,
     vein_confirmation,
