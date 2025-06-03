@@ -11,7 +11,6 @@ use axum_login::AuthManagerLayerBuilder;
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::time::Duration};
 use tower_sessions_sqlx_store::MySqlStore;
 
-use auth::AuthBackend;
 use database::AppState;
 use handlers::{
     add_vein_handler, login_handler, login_page, logout_handler, me_handler, register_handler,
@@ -21,7 +20,7 @@ use handlers::{
 };
 
 use crate::{
-    auth::SESSION_DURATION_DAYS,
+    auth::{AuthBackend, SESSION_DURATION_DAYS},
     database::{connect_session_store_mysql, create_diesel_pool},
 };
 
@@ -34,15 +33,15 @@ async fn main() -> anyhow::Result<()> {
     });
     let addr = format!("0.0.0.0:{}", port);
 
-    let pool = connect_session_store_mysql().await?;
+    let db_pool = connect_session_store_mysql().await?;
     let diesel_pool = create_diesel_pool().await?;
     let state = AppState {
-        db_pool: pool.clone(),
+        db_pool: db_pool.clone(),
         diesel_pool,
     };
 
     // セッションストアの設定
-    let session_store = MySqlStore::new(pool.clone())
+    let session_store = MySqlStore::new(db_pool.clone())
         .with_schema_name(
             // This is a lie. Actually "shcema_name" is a database name.
             std::env::var("DATABASE_NAME").expect("DATABASE_NAME environment variable is not set."),
@@ -54,9 +53,9 @@ async fn main() -> anyhow::Result<()> {
     let session_layer = SessionManagerLayer::new(session_store)
         .with_expiry(Expiry::OnInactivity(Duration::days(SESSION_DURATION_DAYS)));
 
-    // 認証バックエンドの設定
-    let auth_backend = AuthBackend::new(pool.clone());
+    let auth_backend = AuthBackend::new(state.diesel_pool.clone());
     auth_backend.check_users_and_generate_invitation().await?;
+    // 認証バックエンドの設定
     let auth_layer = AuthManagerLayerBuilder::new(auth_backend, session_layer.clone()).build();
 
     let app = Router::new()

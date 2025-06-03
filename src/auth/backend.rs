@@ -1,7 +1,42 @@
 use axum_login::{AuthUser, AuthnBackend, UserId};
+use diesel_async::{AsyncMysqlConnection, pooled_connection::deadpool::Pool};
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 use crate::models::User;
+
+// カスタムエラー型の定義
+#[derive(Debug)]
+pub enum AuthError {
+    Database(diesel::result::Error),
+    Pool(diesel_async::pooled_connection::deadpool::PoolError),
+    PasswordHashing(String),
+}
+
+impl fmt::Display for AuthError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AuthError::Database(e) => write!(f, "Database error: {}", e),
+            AuthError::Pool(e) => write!(f, "Connection pool error: {}", e),
+            AuthError::PasswordHashing(e) => write!(f, "Password hashing error: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for AuthError {}
+
+// エラー型変換の実装
+impl From<diesel::result::Error> for AuthError {
+    fn from(error: diesel::result::Error) -> Self {
+        AuthError::Database(error)
+    }
+}
+
+impl From<diesel_async::pooled_connection::deadpool::PoolError> for AuthError {
+    fn from(error: diesel_async::pooled_connection::deadpool::PoolError) -> Self {
+        AuthError::Pool(error)
+    }
+}
 
 // axum-login用のユーザー実装
 impl AuthUser for User {
@@ -16,22 +51,23 @@ impl AuthUser for User {
     }
 }
 
-// 認証バックエンド
-#[derive(Debug, Clone)]
+pub type DbPool = Pool<AsyncMysqlConnection>;
+#[derive(Clone)]
 pub struct AuthBackend {
-    db: sqlx::MySqlPool,
+    pub db: DbPool,
 }
 
 impl AuthBackend {
-    pub fn new(db: sqlx::MySqlPool) -> Self {
+    pub fn new(db: DbPool) -> Self {
         Self { db }
     }
 
     pub async fn check_users_and_generate_invitation(&self) -> anyhow::Result<()> {
         use crate::auth::queries::AuthQueries;
 
+        let mut connection = self.db.get().await?;
         // アクティブユーザーが存在するかチェック
-        let has_users = AuthQueries::has_any_users(&self.db).await?;
+        let has_users = AuthQueries::has_any_users(&mut connection).await?;
 
         if !has_users {
             println!("\n=== GT6 Vein Manager 初期セットアップ ===");
@@ -45,7 +81,7 @@ impl AuthBackend {
             let base_url = format!("{}://{}:{}", server_protocol, server_host, server_port);
 
             // システム初期招待を作成
-            match AuthQueries::create_system_invitation(&self.db, None).await {
+            match AuthQueries::create_system_invitation(&mut connection, None).await {
                 Ok(invitation) => {
                     let invitation_url =
                         format!("{}/auth/register?token={}", base_url, invitation.token);
@@ -86,7 +122,7 @@ pub struct Credentials {
 impl AuthnBackend for AuthBackend {
     type User = User;
     type Credentials = Credentials;
-    type Error = sqlx::Error;
+    type Error = AuthError;
 
     async fn authenticate(
         &self,
@@ -94,10 +130,13 @@ impl AuthnBackend for AuthBackend {
     ) -> Result<Option<Self::User>, Self::Error> {
         use crate::auth::{queries::AuthQueries, utils::verify_password};
 
-        let user = AuthQueries::get_user_by_username(&self.db, &creds.username).await?;
+        let mut connection = self.db.get().await?;
+
+        let user = AuthQueries::get_user_by_username(&mut connection, &creds.username).await?;
 
         if let Some(user) = user {
-            let is_valid = verify_password(&creds.password, &user.password_hash).unwrap_or(false);
+            let is_valid = verify_password(&creds.password, &user.password_hash)
+                .map_err(|e| AuthError::PasswordHashing(e.to_string()))?;
 
             if is_valid {
                 return Ok(Some(user));
@@ -110,7 +149,9 @@ impl AuthnBackend for AuthBackend {
     async fn get_user(&self, user_id: &UserId<Self>) -> Result<Option<Self::User>, Self::Error> {
         use crate::auth::queries::AuthQueries;
 
-        AuthQueries::get_user_by_id(&self.db, user_id).await
+        let mut connection = self.db.get().await?;
+
+        Ok(AuthQueries::get_user_by_id(&mut connection, user_id).await?)
     }
 }
 
