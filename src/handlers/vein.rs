@@ -7,6 +7,7 @@ use axum::{
     http::StatusCode,
     response::Redirect,
 };
+use diesel_async::AsyncMysqlConnection;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
@@ -37,13 +38,14 @@ async fn handle_vein_action(
     state: AppState,
     vein_id: String,
     form: VeinButtonForm,
+    connection: &mut AsyncMysqlConnection,
     action: Action,
     status: bool,
 ) -> Result<Redirect, StatusCode> {
     let result = match action {
-        Action::Confirmation => insert_vein_confirmation(&state.db_pool, &vein_id, status).await,
-        Action::Depletion => insert_vein_depletion(&state.db_pool, &vein_id, status).await,
-        Action::Revocation => insert_vein_revocation(&state.db_pool, &vein_id, status).await,
+        Action::Confirmation => insert_vein_confirmation(connection, &vein_id, status).await,
+        Action::Depletion => insert_vein_depletion(connection, &vein_id, status).await,
+        Action::Revocation => insert_vein_revocation(connection, &vein_id, status).await,
     };
 
     match result {
@@ -58,8 +60,9 @@ macro_rules! define_vein_action {
             State(state): State<AppState>,
             Path(vein_id): Path<String>,
             Form(form): Form<VeinButtonForm>,
+            connection: &mut AsyncMysqlConnection,
         ) -> Result<Redirect, StatusCode> {
-            handle_vein_action(state, vein_id, form, $action, $status).await
+            handle_vein_action(state, vein_id, form, connection, $action, $status).await
         }
     };
 }

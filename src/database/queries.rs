@@ -1,160 +1,239 @@
-use crate::models::{SearchQuery, Vein};
-use anyhow::Result;
-use sqlx::MySqlPool;
+use crate::models::SearchQuery;
+use diesel::{
+    ExpressionMethods, OptionalExtension, QueryDsl, QueryResult, SelectableHelper,
+    TextExpressionMethods, insert_into,
+};
+use diesel_async::{AsyncMysqlConnection, RunQueryDsl};
+use gt6_vein_manager::schema::*;
 use uuid::Uuid;
 
-const BASE_QUERY: &str = r#"
-    SELECT
-        v.id, v.name, v.x_coord, v.y_coord, v.z_coord, v.notes, v.created_at,
-        CASE WHEN vc.confirmed IS NOT NULL THEN vc.confirmed ELSE FALSE END AS confirmed,
-        CASE WHEN vd.depleted IS NOT NULL THEN vd.depleted ELSE FALSE END AS depleted,
-        CASE WHEN vr.revoked IS NOT NULL THEN vr.revoked ELSE FALSE END AS revoked
-    FROM veins v
-        LEFT JOIN (
-            SELECT DISTINCT vein_id, confirmed
-            FROM vein_confirmations vc1
-            WHERE vc1.created_at = (
-                SELECT MAX(vc2.created_at)
-                FROM vein_confirmations vc2
-                WHERE vc2.vein_id = vc1.vein_id
-            )
-        ) vc ON v.id = vc.vein_id
-        LEFT JOIN (
-            SELECT DISTINCT vein_id, depleted
-            FROM vein_depletions vd1
-            WHERE vd1.created_at = (
-                SELECT MAX(vd2.created_at)
-                FROM vein_depletions vd2
-                WHERE vd2.vein_id = vd1.vein_id
-            )
-        ) vd ON v.id = vd.vein_id
-        LEFT JOIN (
-            SELECT DISTINCT vein_id, revoked
-            FROM vein_revokations vr1
-            WHERE vr1.created_at = (
-                SELECT MAX(vr2.created_at)
-                FROM vein_revokations vr2
-                WHERE vr2.vein_id = vr1.vein_id
-            )
-        ) vr ON v.id = vr.vein_id
-"#;
+pub struct VeinWithStatus {
+    pub id: String,
+    pub name: String,
+    pub x_coord: i32,
+    pub y_coord: Option<i32>,
+    pub z_coord: i32,
+    pub notes: Option<String>,
+    pub created_at: Option<chrono::NaiveDateTime>,
+    pub confirmed: bool,
+    pub depleted: bool,
+    pub revoked: bool,
+    pub is_bedrock: bool,
+}
+
+impl VeinWithStatus {
+    pub fn format_y_coord(&self) -> String {
+        self.y_coord
+            .map_or_else(|| "-".to_string(), |y| y.to_string())
+    }
+
+    pub fn format_notes(&self) -> &str {
+        self.notes.as_deref().unwrap_or("-")
+    }
+
+    pub fn format_created_at(&self) -> String {
+        self.created_at.map_or_else(
+            || "-".to_string(),
+            |dt| dt.format("%Y-%m-%d %H:%M:%S").to_string(),
+        )
+    }
+
+    pub fn confirmed_symbol(&self) -> &'static str {
+        if self.confirmed {
+            "はい"
+        } else {
+            "いいえ"
+        }
+    }
+
+    pub fn depleted_symbol(&self) -> &'static str {
+        if self.depleted { "はい" } else { "いいえ" }
+    }
+}
 
 pub async fn search_veins(
-    pool: &MySqlPool,
+    connection: &mut AsyncMysqlConnection,
     search_query: &SearchQuery,
-) -> Result<Vec<Vein>, sqlx::Error> {
-    let mut query = BASE_QUERY.to_string();
-    let mut conditions = Vec::new();
-    let mut bind_values = Vec::new();
+) -> QueryResult<Vec<VeinWithStatus>> {
+    use gt6_vein_manager::schema::vein::dsl::*;
+    use gt6_vein_manager::schema::vein_confirmation::dsl as vc_dsl;
+    use gt6_vein_manager::schema::vein_depletion::dsl as vd_dsl;
+    use gt6_vein_manager::schema::vein_is_bedrock::dsl as vb_dsl;
+    use gt6_vein_manager::schema::vein_note::dsl as vn_dsl;
+    use gt6_vein_manager::schema::vein_revocation::dsl as vr_dsl;
 
-    // 取り下げられた鉱脈を含めるかどうかの条件
-    if !search_query.should_include_revoked() {
-        conditions.push("(vr.revoked IS NULL OR vr.revoked = FALSE)".to_string());
+    let mut query = vein.into_boxed();
+
+    // Apply name filter if provided
+    if let Some(name_filter) = search_query.get_name_filter() {
+        query = query.filter(name.like(format!("%{}%", name_filter)));
     }
 
-    if let Some(name) = search_query.get_name_filter() {
-        conditions.push("v.name LIKE ?".to_string());
-        bind_values.push(format!("%{}%", name.replace("'", "''")));
+    // Execute the main query to get veins
+    let veins: Vec<crate::models::Vein> = query
+        .select(crate::models::Vein::as_select())
+        .load(connection)
+        .await?;
+
+    let mut results = Vec::new();
+
+    for vein_record in veins {
+        // Get latest confirmation status
+        let latest_confirmed = vein_confirmation::table
+            .filter(vc_dsl::vein_id.eq(&vein_record.id))
+            .order(vc_dsl::created_at.desc())
+            .select(vc_dsl::confirmed)
+            .first::<Option<bool>>(connection)
+            .await
+            .optional()?
+            .flatten()
+            .unwrap_or(false);
+
+        // Get latest depletion status
+        let latest_depleted = vein_depletion::table
+            .filter(vd_dsl::vein_id.eq(&vein_record.id))
+            .order(vd_dsl::created_at.desc())
+            .select(vd_dsl::depleted)
+            .first::<Option<bool>>(connection)
+            .await
+            .optional()?
+            .flatten()
+            .unwrap_or(false);
+
+        // Get latest revocation status
+        let latest_revoked = vein_revocation::table
+            .filter(vr_dsl::vein_id.eq(&vein_record.id))
+            .order(vr_dsl::created_at.desc())
+            .select(vr_dsl::revoked)
+            .first::<Option<bool>>(connection)
+            .await
+            .optional()?
+            .flatten()
+            .unwrap_or(false);
+
+        // Get latest bedrock status
+        let latest_is_bedrock = vein_is_bedrock::table
+            .filter(vb_dsl::vein_id.eq(&vein_record.id))
+            .order(vb_dsl::created_at.desc())
+            .select(vb_dsl::is_bedrock)
+            .first::<Option<bool>>(connection)
+            .await
+            .optional()?
+            .flatten()
+            .unwrap_or(false);
+
+        // Get latest note
+        let latest_notes = vein_note::table
+            .filter(vn_dsl::vein_id.eq(&vein_record.id))
+            .order(vn_dsl::created_at.desc())
+            .select(vn_dsl::note)
+            .first::<Option<String>>(connection)
+            .await
+            .optional()?
+            .flatten();
+
+        // Skip revoked veins unless explicitly requested
+        if latest_revoked && !search_query.should_include_revoked() {
+            continue;
+        }
+
+        let vein_with_status = VeinWithStatus {
+            id: vein_record.id,
+            name: vein_record.name,
+            x_coord: vein_record.x_coord,
+            y_coord: vein_record.y_coord,
+            z_coord: vein_record.z_coord,
+            notes: latest_notes,
+            created_at: vein_record.created_at,
+            confirmed: latest_confirmed,
+            depleted: latest_depleted,
+            revoked: latest_revoked,
+            is_bedrock: latest_is_bedrock,
+        };
+
+        results.push(vein_with_status);
     }
 
-    if !conditions.is_empty() {
-        query.push_str(" WHERE ");
-        query.push_str(&conditions.join(" AND "));
-    }
-
-    query.push_str(" ORDER BY v.created_at DESC");
-
-    let mut sql_query = sqlx::query_as::<_, Vein>(&query);
-    for value in bind_values {
-        sql_query = sql_query.bind(value);
-    }
-
-    sql_query.fetch_all(pool).await
+    Ok(results)
 }
 
 pub async fn insert_vein(
-    pool: &MySqlPool,
+    connection: &mut AsyncMysqlConnection,
     id: &str,
     name: &str,
     x_coord: i32,
     y_coord: Option<i32>,
     z_coord: i32,
     notes: &Option<String>,
-) -> Result<(), sqlx::Error> {
-    sqlx::query(
-        r#"
-        INSERT INTO veins (id, name, x_coord, y_coord, z_coord, notes)
-        VALUES (?, ?, ?, ?, ?, ?)
-        "#,
-    )
-    .bind(id)
-    .bind(name)
-    .bind(x_coord)
-    .bind(y_coord)
-    .bind(z_coord)
-    .bind(notes)
-    .execute(pool)
-    .await?;
+) -> QueryResult<usize> {
+    insert_into(vein::table)
+        .values((
+            vein::id.eq(id),
+            vein::name.eq(name),
+            vein::x_coord.eq(x_coord),
+            vein::y_coord.eq(y_coord),
+            vein::z_coord.eq(z_coord),
+        ))
+        .execute(connection)
+        .await
+}
 
-    Ok(())
+pub async fn insert_vein_note(
+    connection: &mut AsyncMysqlConnection,
+    vein_id: &str,
+    note: &str,
+) -> QueryResult<usize> {
+    insert_into(vein_note::table)
+        .values((
+            vein_note::id.eq(Uuid::new_v4().to_string()),
+            vein_note::vein_id.eq(vein_id),
+            vein_note::note.eq(note),
+        ))
+        .execute(connection)
+        .await
 }
 
 pub async fn insert_vein_confirmation(
-    pool: &MySqlPool,
+    connection: &mut AsyncMysqlConnection,
     vein_id: &str,
     confirmed: bool,
-) -> Result<(), sqlx::Error> {
-    sqlx::query(
-        r#"
-        INSERT INTO vein_confirmations (id, vein_id, confirmed)
-        VALUES (?, ?, ?)
-        "#,
-    )
-    .bind(Uuid::new_v4().to_string())
-    .bind(vein_id)
-    .bind(confirmed)
-    .execute(pool)
-    .await?;
-
-    Ok(())
+) -> QueryResult<usize> {
+    insert_into(vein_confirmation::table)
+        .values((
+            vein_confirmation::id.eq(Uuid::new_v4().to_string()),
+            vein_confirmation::vein_id.eq(vein_id),
+            vein_confirmation::confirmed.eq(confirmed),
+        ))
+        .execute(connection)
+        .await
 }
 
 pub async fn insert_vein_depletion(
-    pool: &MySqlPool,
+    connection: &mut AsyncMysqlConnection,
     vein_id: &str,
     depleted: bool,
-) -> Result<(), sqlx::Error> {
-    sqlx::query(
-        r#"
-        INSERT INTO vein_depletions (id, vein_id, depleted)
-        VALUES (?, ?, ?)
-        "#,
-    )
-    .bind(Uuid::new_v4().to_string())
-    .bind(vein_id)
-    .bind(depleted)
-    .execute(pool)
-    .await?;
-
-    Ok(())
+) -> QueryResult<usize> {
+    insert_into(vein_depletion::table)
+        .values((
+            vein_depletion::id.eq(Uuid::new_v4().to_string()),
+            vein_depletion::vein_id.eq(vein_id),
+            vein_depletion::depleted.eq(depleted),
+        ))
+        .execute(connection)
+        .await
 }
 
 pub async fn insert_vein_revocation(
-    pool: &MySqlPool,
+    connection: &mut AsyncMysqlConnection,
     vein_id: &str,
     revoked: bool,
-) -> Result<(), sqlx::Error> {
-    sqlx::query(
-        r#"
-        INSERT INTO vein_revokations (id, vein_id, revoked)
-        VALUES (?, ?, ?)
-        "#,
-    )
-    .bind(Uuid::new_v4().to_string())
-    .bind(vein_id)
-    .bind(revoked)
-    .execute(pool)
-    .await?;
-
-    Ok(())
+) -> QueryResult<usize> {
+    insert_into(vein_revocation::table)
+        .values((
+            vein_revocation::id.eq(Uuid::new_v4().to_string()),
+            vein_revocation::vein_id.eq(vein_id),
+            vein_revocation::revoked.eq(revoked),
+        ))
+        .execute(connection)
+        .await
 }

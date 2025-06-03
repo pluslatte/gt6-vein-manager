@@ -1,18 +1,19 @@
 use crate::database::{
-    AppState, insert_vein, insert_vein_confirmation, insert_vein_depletion, search_veins,
+    VeinWithStatus, insert_vein, insert_vein_confirmation, insert_vein_depletion, search_veins,
 };
-use crate::models::{AddVeinForm, SearchQuery, Vein};
+use crate::models::{AddVeinForm, SearchQuery};
 use axum::{
-    extract::{Form, Query, State},
+    extract::{Form, Query},
     response::Html,
 };
+use diesel_async::AsyncMysqlConnection;
 use uuid::Uuid;
 
 pub async fn search_veins_handler(
-    State(state): State<AppState>,
+    connection: &mut AsyncMysqlConnection,
     Query(params): Query<SearchQuery>,
 ) -> Html<String> {
-    match search_veins(&state.db_pool, &params).await {
+    match search_veins(connection, &params).await {
         Ok(veins) => generate_search_results_html(veins, &params),
         Err(e) => {
             eprintln!("Database error: {}", e);
@@ -22,7 +23,7 @@ pub async fn search_veins_handler(
 }
 
 pub async fn add_vein_handler(
-    State(state): State<AppState>,
+    connection: &mut AsyncMysqlConnection,
     Form(form): Form<AddVeinForm>,
 ) -> Html<String> {
     let id = Uuid::new_v4().to_string();
@@ -43,7 +44,7 @@ pub async fn add_vein_handler(
 
     // 鉱脈の挿入
     if let Err(e) = insert_vein(
-        &state.db_pool,
+        connection,
         &id,
         &form.name,
         x_coord,
@@ -59,14 +60,14 @@ pub async fn add_vein_handler(
 
     // 確認済みの場合
     if form.is_confirmed() {
-        if let Err(e) = insert_vein_confirmation(&state.db_pool, &id, true).await {
+        if let Err(e) = insert_vein_confirmation(connection, &id, true).await {
             eprintln!("Failed to insert confirmation: {}", e);
         }
     }
 
     // 枯渇済みの場合
     if form.is_depleted() {
-        if let Err(e) = insert_vein_depletion(&state.db_pool, &id, true).await {
+        if let Err(e) = insert_vein_depletion(connection, &id, true).await {
             eprintln!("Failed to insert depletion: {}", e);
         }
     }
@@ -74,7 +75,7 @@ pub async fn add_vein_handler(
     Html(generate_success_html(&form, &id))
 }
 
-fn generate_search_results_html(veins: Vec<Vein>, query: &SearchQuery) -> Html<String> {
+fn generate_search_results_html(veins: Vec<VeinWithStatus>, query: &SearchQuery) -> Html<String> {
     let mut search_info = if query.has_name_filter() {
         format!("検索条件: 名前: {}", query.name.as_ref().unwrap())
     } else {
@@ -118,7 +119,7 @@ fn generate_search_results_html(veins: Vec<Vein>, query: &SearchQuery) -> Html<S
     ))
 }
 
-fn generate_veins_table(veins: Vec<Vein>, query: &SearchQuery) -> String {
+fn generate_veins_table(veins: Vec<VeinWithStatus>, query: &SearchQuery) -> String {
     let mut html = format!("<p>{} 件の鉱脈が見つかりました。</p>", veins.len());
     html.push_str("<table>");
     html.push_str(

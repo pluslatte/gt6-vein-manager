@@ -12,7 +12,7 @@ use tower_sessions::{Expiry, SessionManagerLayer, cookie::time::Duration};
 use tower_sessions_sqlx_store::MySqlStore;
 
 use auth::AuthBackend;
-use database::{AppState, initialize_database};
+use database::AppState;
 use handlers::{
     add_vein_handler, login_handler, login_page, logout_handler, me_handler, register_handler,
     register_page, search_veins_handler, serve_css, serve_index, vein_confirmation_revoke,
@@ -20,7 +20,7 @@ use handlers::{
     vein_revocation_set,
 };
 
-use crate::auth::SESSION_DURATION_DAYS;
+use crate::{auth::SESSION_DURATION_DAYS, database::connect_session_store_mysql};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -31,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
     });
     let addr = format!("0.0.0.0:{}", port);
 
-    let pool = initialize_database().await?;
+    let pool = connect_session_store_mysql().await?;
     let state = AppState {
         db_pool: pool.clone(),
     };
