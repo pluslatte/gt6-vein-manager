@@ -40,7 +40,56 @@ impl SessionStore for DieselSessionStore {
     }
 
     async fn save(&self, record: &Record) -> session_store::Result<()> {
-        todo!("Implement save session logic using Diesel");
+        let mut connection = self.pool.get().await.map_err(|e| {
+            session_store::Error::Backend(format!("Failed to get connection: {}", e))
+        })?;
+
+        let session_id_str = record.id.to_string();
+        let data_str = serialize_session_data(&record.data)?;
+        let expiry_naive = offset_to_naive_datetime(record.expiry_date);
+
+        // To check if the session already exists
+        let existing_session: Option<Session> = sessions::table
+            .filter(sessions::id.eq(&session_id_str))
+            .first(&mut connection)
+            .await
+            .optional()
+            .map_err(|e| {
+                session_store::Error::Backend(format!("Failed to check session: {}", e))
+            })?;
+
+        // Insert or update the session in the database
+        if existing_session.is_some() {
+            // Update existing session
+            diesel::update(sessions::table.filter(sessions::id.eq(&session_id_str)))
+                .set((
+                    sessions::data.eq(data_str),
+                    sessions::expiry_date.eq(expiry_naive),
+                ))
+                .execute(&mut connection)
+                .await
+                .map_err(|e| {
+                    session_store::Error::Backend(format!("Failed to update session: {}", e))
+                })?;
+        } else {
+            // Create a new session object
+            let new_session = NewSession {
+                id: session_id_str,
+                data: data_str,
+                expiry_date: expiry_naive,
+            };
+
+            // Insert new session
+            diesel::insert_into(sessions::table)
+                .values(new_session)
+                .execute(&mut connection)
+                .await
+                .map_err(|e| {
+                    session_store::Error::Backend(format!("Failed to create session: {}", e))
+                })?;
+        }
+
+        Ok(())
     }
 
     async fn load(&self, id: &Id) -> session_store::Result<Option<Record>> {
