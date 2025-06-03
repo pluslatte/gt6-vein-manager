@@ -3,13 +3,13 @@ mod database;
 mod handlers;
 mod models;
 
+use crate::auth::DieselSessionStore;
 use axum::{
     Router,
     routing::{get, post},
 };
 use axum_login::AuthManagerLayerBuilder;
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::time::Duration};
-use tower_sessions_sqlx_store::MySqlStore;
 
 use database::AppState;
 use handlers::{
@@ -21,7 +21,7 @@ use handlers::{
 
 use crate::{
     auth::{AuthBackend, SESSION_DURATION_DAYS},
-    database::{connect_session_store_mysql, create_diesel_pool},
+    database::create_diesel_pool,
 };
 
 #[tokio::main]
@@ -33,21 +33,13 @@ async fn main() -> anyhow::Result<()> {
     });
     let addr = format!("0.0.0.0:{}", port);
 
-    let db_pool = connect_session_store_mysql().await?;
     let diesel_pool = create_diesel_pool().await?;
     let state = AppState {
-        db_pool: db_pool.clone(),
-        diesel_pool,
+        diesel_pool: diesel_pool.clone(),
     };
 
-    // セッションストアの設定
-    let session_store = MySqlStore::new(db_pool.clone())
-        .with_schema_name(
-            // This is a lie. Actually "shcema_name" is a database name.
-            std::env::var("DATABASE_NAME").expect("DATABASE_NAME environment variable is not set."),
-        )
-        .unwrap();
-    session_store.migrate().await?;
+    // セッションストアの初期化
+    let session_store = DieselSessionStore::new(diesel_pool.clone());
 
     // セッション管理の設定（7日間有効）
     let session_layer = SessionManagerLayer::new(session_store)
