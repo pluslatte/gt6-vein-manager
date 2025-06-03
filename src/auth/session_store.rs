@@ -43,7 +43,40 @@ impl SessionStore for DieselSessionStore {
     }
 
     async fn load(&self, id: &Id) -> session_store::Result<Option<Record>> {
-        todo!("Implement load session logic using Diesel");
+        use gt6_vein_manager::schema::sessions;
+
+        let mut connection = self.pool.get().await.map_err(|e| {
+            session_store::Error::Backend(format!("Failed to get connection: {}", e))
+        })?;
+
+        let session_id_str = id.to_string();
+
+        let session: Option<Session> = sessions::table
+            .filter(sessions::id.eq(&session_id_str))
+            .first(&mut connection)
+            .await
+            .optional()
+            .map_err(|e| session_store::Error::Backend(format!("Failed to load session: {}", e)))?;
+
+        match session {
+            Some(session) => {
+                let expiry_offset = naive_datetime_to_offset(session.expiry_date);
+                if expiry_offset < time::OffsetDateTime::now_utc() {
+                    // Session has expired
+                    self.delete(id).await?;
+                    return Ok(None);
+                }
+
+                let data = deserialize_session_data(&session.data)?;
+
+                Ok(Some(Record {
+                    id: *id,
+                    data,
+                    expiry_date: expiry_offset,
+                }))
+            }
+            None => Ok(None),
+        }
     }
 
     async fn delete(&self, id: &Id) -> session_store::Result<()> {
