@@ -3,7 +3,6 @@ mod database;
 mod handlers;
 mod models;
 
-use crate::{auth::DieselSessionStore, handlers::require_auth};
 use axum::{
     Router, middleware,
     routing::{get, post},
@@ -11,17 +10,14 @@ use axum::{
 use axum_login::AuthManagerLayerBuilder;
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::time::Duration};
 
-use database::AppState;
-use handlers::{
+use crate::auth::{AuthBackend, DieselSessionStore, SESSION_DURATION_DAYS};
+use crate::database::AppState;
+use crate::database::create_diesel_pool;
+use crate::handlers::{
     add_vein_handler, login_handler, login_page, logout_handler, me_handler, register_handler,
-    register_page, search_veins_handler, serve_css, serve_index, vein_confirmation_revoke,
-    vein_confirmation_set, vein_depletion_revoke, vein_depletion_set, vein_revocation_revoke,
-    vein_revocation_set,
-};
-
-use crate::{
-    auth::{AuthBackend, SESSION_DURATION_DAYS},
-    database::create_diesel_pool,
+    register_page, require_auth, search_veins_handler, serve_css, serve_index,
+    vein_confirmation_revoke, vein_confirmation_set, vein_depletion_revoke, vein_depletion_set,
+    vein_revocation_revoke, vein_revocation_set,
 };
 
 #[tokio::main]
@@ -81,9 +77,18 @@ async fn main() -> anyhow::Result<()> {
                 .route("/veins/add", post(add_vein_handler))
                 .layer(middleware::from_fn(require_auth)),
         )
-        .route("/search", get(search_veins_handler).layer(middleware::from_fn(require_auth)))
-        .route("/", get(serve_index).layer(middleware::from_fn(require_auth)))
-        .route("/index.html", get(serve_index).layer(middleware::from_fn(require_auth)))
+        .route(
+            "/search",
+            get(search_veins_handler).layer(middleware::from_fn(require_auth)),
+        )
+        .route(
+            "/",
+            get(serve_index).layer(middleware::from_fn(require_auth)),
+        )
+        .route(
+            "/index.html",
+            get(serve_index).layer(middleware::from_fn(require_auth)),
+        )
         .route("/styles.css", get(serve_css))
         .layer(auth_layer)
         .layer(session_layer)

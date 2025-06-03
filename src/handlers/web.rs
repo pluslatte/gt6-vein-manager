@@ -1,11 +1,12 @@
 use crate::database::{
-    AppState, VeinWithStatus, insert_vein, insert_vein_confirmation, insert_vein_depletion, search_veins,
+    AppState, VeinWithStatus, insert_vein, insert_vein_confirmation, insert_vein_depletion,
+    search_veins,
 };
 use crate::models::{AddVeinForm, SearchQuery};
 use axum::{
     extract::{Form, Query, State},
-    response::Html,
     http::StatusCode,
+    response::Html,
 };
 use uuid::Uuid;
 
