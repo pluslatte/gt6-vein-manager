@@ -18,15 +18,8 @@ mysqlclient-sys = { version = "0.4.5", features = ["bundled"] }
 rand = "0.9.1"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
-sqlx = { version = "0.8.6", features = [
-    "runtime-tokio-rustls",
-    "mysql",
-    "chrono",
-    "uuid",
-] }
 time = { version = "0.3.41", features = ["serde"] }
 tokio = { version = "1.45.1", features = ["full"] }
 tower = { version = "0.5.2", features = ["util"] }
 tower-sessions = "0.14.0"
-tower-sessions-sqlx-store = { version = "0.15.0", features = ["mysql"] }
 uuid = { version = "1.17.0", features = ["v4", "serde"] }

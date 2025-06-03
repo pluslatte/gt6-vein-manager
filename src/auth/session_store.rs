@@ -3,11 +3,11 @@ use std::collections::HashMap;
 use crate::models::{NewSession, Session};
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
-use diesel_async::{AsyncMysqlConnection, RunQueryDsl};
+use diesel_async::RunQueryDsl;
 use gt6_vein_manager::schema::sessions;
 use tower_sessions::{
     SessionStore,
-    session::{self, Id, Record},
+    session::{Id, Record},
     session_store,
 };
 
