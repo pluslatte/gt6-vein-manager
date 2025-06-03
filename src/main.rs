@@ -56,7 +56,6 @@ async fn main() -> anyhow::Result<()> {
 
     // 認証バックエンドの設定
     let auth_backend = AuthBackend::new(pool.clone());
-    auth_backend.ensure_tables().await?;
     auth_backend.check_users_and_generate_invitation().await?;
     let auth_layer = AuthManagerLayerBuilder::new(auth_backend, session_layer.clone()).build();
 
