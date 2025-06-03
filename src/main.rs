@@ -20,7 +20,10 @@ use handlers::{
     vein_revocation_set,
 };
 
-use crate::{auth::SESSION_DURATION_DAYS, database::connect_session_store_mysql};
+use crate::{
+    auth::SESSION_DURATION_DAYS,
+    database::{connect_session_store_mysql, create_diesel_pool},
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -32,8 +35,10 @@ async fn main() -> anyhow::Result<()> {
     let addr = format!("0.0.0.0:{}", port);
 
     let pool = connect_session_store_mysql().await?;
+    let diesel_pool = create_diesel_pool().await?;
     let state = AppState {
         db_pool: pool.clone(),
+        diesel_pool,
     };
 
     // セッションストアの設定

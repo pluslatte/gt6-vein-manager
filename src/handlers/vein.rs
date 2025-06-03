@@ -35,7 +35,7 @@ pub enum Action {
 }
 
 async fn handle_vein_action(
-    state: AppState,
+    _state: AppState,
     vein_id: String,
     form: VeinButtonForm,
     connection: &mut AsyncMysqlConnection,
@@ -60,9 +60,10 @@ macro_rules! define_vein_action {
             State(state): State<AppState>,
             Path(vein_id): Path<String>,
             Form(form): Form<VeinButtonForm>,
-            connection: &mut AsyncMysqlConnection,
         ) -> Result<Redirect, StatusCode> {
-            handle_vein_action(state, vein_id, form, connection, $action, $status).await
+            let mut connection = state.diesel_pool.get().await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            handle_vein_action(state, vein_id, form, &mut connection, $action, $status).await
         }
     };
 }

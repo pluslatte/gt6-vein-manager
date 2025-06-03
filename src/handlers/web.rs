@@ -1,50 +1,60 @@
 use crate::database::{
-    VeinWithStatus, insert_vein, insert_vein_confirmation, insert_vein_depletion, search_veins,
+    AppState, VeinWithStatus, insert_vein, insert_vein_confirmation, insert_vein_depletion, search_veins,
 };
 use crate::models::{AddVeinForm, SearchQuery};
 use axum::{
-    extract::{Form, Query},
+    extract::{Form, Query, State},
     response::Html,
+    http::StatusCode,
 };
-use diesel_async::AsyncMysqlConnection;
 use uuid::Uuid;
 
 pub async fn search_veins_handler(
-    connection: &mut AsyncMysqlConnection,
+    State(state): State<AppState>,
     Query(params): Query<SearchQuery>,
-) -> Html<String> {
-    match search_veins(connection, &params).await {
-        Ok(veins) => generate_search_results_html(veins, &params),
+) -> Result<Html<String>, StatusCode> {
+    let mut connection = match state.diesel_pool.get().await {
+        Ok(conn) => conn,
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
+    match search_veins(&mut connection, &params).await {
+        Ok(veins) => Ok(generate_search_results_html(veins, &params)),
         Err(e) => {
             eprintln!("Database error: {}", e);
-            Html(generate_database_error_html())
+            Ok(Html(generate_database_error_html()))
         }
     }
 }
 
 pub async fn add_vein_handler(
-    connection: &mut AsyncMysqlConnection,
+    State(state): State<AppState>,
     Form(form): Form<AddVeinForm>,
-) -> Html<String> {
+) -> Result<Html<String>, StatusCode> {
+    let mut connection = match state.diesel_pool.get().await {
+        Ok(conn) => conn,
+        Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
+    };
+
     let id = Uuid::new_v4().to_string();
 
     // 座標の解析
     let x_coord = match form.parse_x_coord() {
         Ok(val) => val,
-        Err(_) => return Html(generate_coord_error_html("X")),
+        Err(_) => return Ok(Html(generate_coord_error_html("X"))),
     };
     let y_coord = match form.parse_y_coord() {
         Ok(val) => val,
-        Err(_) => return Html(generate_coord_error_html("Y")),
+        Err(_) => return Ok(Html(generate_coord_error_html("Y"))),
     };
     let z_coord = match form.parse_z_coord() {
         Ok(val) => val,
-        Err(_) => return Html(generate_coord_error_html("Z")),
+        Err(_) => return Ok(Html(generate_coord_error_html("Z"))),
     };
 
     // 鉱脈の挿入
     if let Err(e) = insert_vein(
-        connection,
+        &mut connection,
         &id,
         &form.name,
         x_coord,
@@ -55,24 +65,24 @@ pub async fn add_vein_handler(
     .await
     {
         eprintln!("Database error: {}", e);
-        return Html(generate_database_error_html());
+        return Ok(Html(generate_database_error_html()));
     }
 
     // 確認済みの場合
     if form.is_confirmed() {
-        if let Err(e) = insert_vein_confirmation(connection, &id, true).await {
+        if let Err(e) = insert_vein_confirmation(&mut connection, &id, true).await {
             eprintln!("Failed to insert confirmation: {}", e);
         }
     }
 
     // 枯渇済みの場合
     if form.is_depleted() {
-        if let Err(e) = insert_vein_depletion(connection, &id, true).await {
+        if let Err(e) = insert_vein_depletion(&mut connection, &id, true).await {
             eprintln!("Failed to insert depletion: {}", e);
         }
     }
 
-    Html(generate_success_html(&form, &id))
+    Ok(Html(generate_success_html(&form, &id)))
 }
 
 fn generate_search_results_html(veins: Vec<VeinWithStatus>, query: &SearchQuery) -> Html<String> {
