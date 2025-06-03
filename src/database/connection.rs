@@ -16,14 +16,6 @@ pub struct AppState {
     pub diesel_pool: DieselPool,
 }
 
-impl AppState {
-    pub async fn get_diesel_async_connection(
-        &self,
-    ) -> Result<deadpool::Object<AsyncMysqlConnection>, PoolError> {
-        self.diesel_pool.get().await
-    }
-}
-
 pub async fn connect_session_store_mysql() -> Result<MySqlPool> {
     dotenv::dotenv().ok();
 

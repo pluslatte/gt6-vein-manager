@@ -1,23 +1,27 @@
 use chrono::{Duration, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncMysqlConnection, RunQueryDsl};
-use sqlx::MySqlPool;
 use uuid::Uuid;
 
 use crate::auth::utils::{INVITATION_DURATION_HOURS, hash_password};
 use crate::models::{Invitation, User};
+use diesel::dsl::count_star;
 use gt6_vein_manager::schema::*;
 
 pub struct AuthQueries;
 
 impl AuthQueries {
     /// システムにユーザーが存在するかチェック
-    pub async fn has_any_users(pool: &MySqlPool) -> Result<bool, sqlx::Error> {
-        let count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM users WHERE is_active = TRUE")
-            .fetch_one(pool)
+    pub async fn has_any_users(
+        connection: &mut AsyncMysqlConnection,
+    ) -> Result<bool, diesel::result::Error> {
+        let count: i64 = user::table
+            .filter(user::is_active.eq(true))
+            .select(count_star())
+            .first::<i64>(connection)
             .await?;
 
-        Ok(count.0 > 0)
+        Ok(count > 0)
     }
 
     /// 管理者用の初期招待を作成（システム起動時用）
