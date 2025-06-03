@@ -2,9 +2,10 @@ use std::ops::DerefMut;
 
 use axum::{
     Form,
-    extract::{Query, State},
+    extract::{Query, Request, State},
     http::StatusCode,
-    response::{Html, Json, Redirect},
+    middleware::Next,
+    response::{Html, Json, Redirect, Response},
 };
 use serde::Deserialize;
 
@@ -273,17 +274,25 @@ pub async fn me_handler(auth_session: AuthSession) -> Result<Json<UserResponse>,
 }
 
 // 認証確認用ミドルウェア
-pub async fn require_auth(auth_session: AuthSession) -> Result<(), Redirect> {
+pub async fn require_auth(
+    auth_session: AuthSession,
+    request: Request,
+    next: Next,
+) -> Result<Response, Redirect> {
     match auth_session.user {
-        Some(_) => Ok(()),
+        Some(_) => Ok(next.run(request).await),
         None => Err(Redirect::to("/auth/login")),
     }
 }
 
 // 管理者権限確認用ミドルウェア
-pub async fn require_admin(auth_session: AuthSession) -> Result<(), (StatusCode, String)> {
+pub async fn require_admin(
+    auth_session: AuthSession,
+    request: Request,
+    next: Next,
+) -> Result<Response, (StatusCode, String)> {
     match auth_session.user {
-        Some(user) if user.is_admin.unwrap_or(false) => Ok(()),
+        Some(user) if user.is_admin.unwrap_or(false) => Ok(next.run(request).await),
         Some(_) => Err((StatusCode::FORBIDDEN, "管理者権限が必要です".to_string())),
         None => Err((StatusCode::UNAUTHORIZED, "ログインが必要です".to_string())),
     }

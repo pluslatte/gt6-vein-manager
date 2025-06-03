@@ -3,9 +3,9 @@ mod database;
 mod handlers;
 mod models;
 
-use crate::auth::DieselSessionStore;
+use crate::{auth::DieselSessionStore, handlers::require_auth};
 use axum::{
-    Router,
+    Router, middleware,
     routing::{get, post},
 };
 use axum_login::AuthManagerLayerBuilder;
@@ -51,43 +51,39 @@ async fn main() -> anyhow::Result<()> {
     let auth_layer = AuthManagerLayerBuilder::new(auth_backend, session_layer.clone()).build();
 
     let app = Router::new()
-        // 認証関連ルート（認証不要）
         .route("/auth/login", get(login_page))
         .route("/auth/login", post(login_handler))
         .route("/auth/logout", post(logout_handler))
         .route("/auth/register", get(register_page))
         .route("/auth/register", post(register_handler))
-        .route("/api/auth/me", get(me_handler))
-        // Vein API（認証必要）
-        .route(
-            "/api/veins/{vein_id}/confirmation/set",
-            post(vein_confirmation_set),
+        .nest(
+            "/api",
+            Router::new()
+                .route("/auth/me", get(me_handler))
+                .route(
+                    "/veins/{vein_id}/confirmation/set",
+                    post(vein_confirmation_set),
+                )
+                .route(
+                    "/veins/{vein_id}/confirmation/revoke",
+                    post(vein_confirmation_revoke),
+                )
+                .route("/veins/{vein_id}/depletion/set", post(vein_depletion_set))
+                .route(
+                    "/veins/{vein_id}/depletion/revoke",
+                    post(vein_depletion_revoke),
+                )
+                .route("/veins/{vein_id}/revocation/set", post(vein_revocation_set))
+                .route(
+                    "/veins/{vein_id}/revocation/revoke",
+                    post(vein_revocation_revoke),
+                )
+                .route("/veins/add", post(add_vein_handler))
+                .layer(middleware::from_fn(require_auth)),
         )
-        .route(
-            "/api/veins/{vein_id}/confirmation/revoke",
-            post(vein_confirmation_revoke),
-        )
-        .route(
-            "/api/veins/{vein_id}/depletion/set",
-            post(vein_depletion_set),
-        )
-        .route(
-            "/api/veins/{vein_id}/depletion/revoke",
-            post(vein_depletion_revoke),
-        )
-        .route(
-            "/api/veins/{vein_id}/revocation/set",
-            post(vein_revocation_set),
-        )
-        .route(
-            "/api/veins/{vein_id}/revocation/revoke",
-            post(vein_revocation_revoke),
-        )
-        .route("/search", get(search_veins_handler))
-        .route("/api/veins/add", post(add_vein_handler))
-        // 静的ファイル（認証不要）
-        .route("/", get(serve_index))
-        .route("/index.html", get(serve_index))
+        .route("/search", get(search_veins_handler).layer(middleware::from_fn(require_auth)))
+        .route("/", get(serve_index).layer(middleware::from_fn(require_auth)))
+        .route("/index.html", get(serve_index).layer(middleware::from_fn(require_auth)))
         .route("/styles.css", get(serve_css))
         .layer(auth_layer)
         .layer(session_layer)
