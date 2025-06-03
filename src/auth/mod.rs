@@ -1,7 +1,9 @@
-pub mod utils;
-pub mod queries;
 pub mod backend;
+pub mod queries;
+pub mod session_store;
+pub mod utils;
 
-pub use utils::*;
-pub use queries::*;
 pub use backend::*;
+pub use queries::*;
+pub use session_store::*;
+pub use utils::*;
