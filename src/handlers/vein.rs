@@ -1,5 +1,6 @@
 use crate::database::{
-    AppState, insert_vein_confirmation, insert_vein_depletion, insert_vein_revocation,
+    AppState, insert_vein_confirmation, insert_vein_depletion, insert_vein_is_bedrock,
+    insert_vein_revocation,
 };
 use axum::{
     Form,
@@ -32,6 +33,7 @@ pub enum Action {
     Confirmation,
     Depletion,
     Revocation,
+    IsBedrock,
 }
 
 async fn handle_vein_action(
@@ -46,6 +48,7 @@ async fn handle_vein_action(
         Action::Confirmation => insert_vein_confirmation(connection, &vein_id, status).await,
         Action::Depletion => insert_vein_depletion(connection, &vein_id, status).await,
         Action::Revocation => insert_vein_revocation(connection, &vein_id, status).await,
+        Action::IsBedrock => insert_vein_is_bedrock(connection, &vein_id, status).await,
     };
 
     match result {
@@ -56,6 +59,7 @@ async fn handle_vein_action(
                     Action::Confirmation => "Confirmation",
                     Action::Depletion => "Depletion",
                     Action::Revocation => "Revocation",
+                    Action::IsBedrock => "IsBedrock",
                 },
                 vein_id
             );
@@ -68,6 +72,7 @@ async fn handle_vein_action(
                     Action::Confirmation => "Confirmation",
                     Action::Depletion => "Depletion",
                     Action::Revocation => "Revocation",
+                    Action::IsBedrock => "IsBedrock",
                 },
                 vein_id
             );
@@ -100,3 +105,5 @@ define_vein_action!(vein_depletion_set, Action::Depletion, true);
 define_vein_action!(vein_depletion_revoke, Action::Depletion, false);
 define_vein_action!(vein_revocation_set, Action::Revocation, true);
 define_vein_action!(vein_revocation_revoke, Action::Revocation, false);
+define_vein_action!(vein_is_bedrock_set, Action::IsBedrock, true);
+define_vein_action!(vein_is_bedrock_revoke, Action::IsBedrock, false);

@@ -49,6 +49,14 @@ impl VeinWithStatus {
     pub fn depleted_symbol(&self) -> &'static str {
         if self.depleted { "はい" } else { "いいえ" }
     }
+
+    pub fn is_bedrock_symbol(&self) -> &'static str {
+        if self.is_bedrock {
+            "はい"
+        } else {
+            "いいえ"
+        }
+    }
 }
 
 pub async fn search_veins(
@@ -336,6 +344,42 @@ pub async fn insert_vein_revocation(
             eprintln!(
                 "Failed to insert vein revocation: vein_id={}, revoked={}, error={}",
                 vein_id, revoked, e
+            );
+            Err(e)
+        }
+    }
+}
+
+pub async fn insert_vein_is_bedrock(
+    connection: &mut AsyncMysqlConnection,
+    vein_id: &str,
+    is_bedrock: bool,
+) -> QueryResult<usize> {
+    println!(
+        "Attempting to insert vein is_bedrock: vein_id={}, is_bedrock={}",
+        vein_id, is_bedrock
+    );
+    let result = insert_into(vein_is_bedrock::table)
+        .values((
+            vein_is_bedrock::id.eq(Uuid::new_v4().to_string()),
+            vein_is_bedrock::vein_id.eq(vein_id),
+            vein_is_bedrock::is_bedrock.eq(is_bedrock),
+        ))
+        .execute(connection)
+        .await;
+
+    match result {
+        Ok(count) => {
+            println!(
+                "Successfully inserted vein is_bedrock: vein_id={}, is_bedrock={}, count={}",
+                vein_id, is_bedrock, count
+            );
+            Ok(count)
+        }
+        Err(e) => {
+            eprintln!(
+                "Failed to insert vein is_bedrock: vein_id={}, is_bedrock={}, error={}",
+                vein_id, is_bedrock, e
             );
             Err(e)
         }

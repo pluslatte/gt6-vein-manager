@@ -1,6 +1,6 @@
 use crate::database::{
     AppState, VeinWithStatus, insert_vein, insert_vein_confirmation, insert_vein_depletion,
-    search_veins,
+    insert_vein_is_bedrock, search_veins,
 };
 use crate::models::{AddVeinForm, SearchQuery};
 use axum::{
@@ -83,6 +83,13 @@ pub async fn add_vein_handler(
         }
     }
 
+    // 岩盤鉱脈の場合
+    if form.is_bedrock() {
+        if let Err(e) = insert_vein_is_bedrock(&mut connection, &id, true).await {
+            eprintln!("Failed to insert bedrock status: {}", e);
+        }
+    }
+
     Ok(Html(generate_success_html(&form, &id)))
 }
 
@@ -142,6 +149,7 @@ fn generate_veins_table(veins: Vec<VeinWithStatus>, query: &SearchQuery) -> Stri
                 <th>Z座標</th>
                 <th>Y座標</th>
                 <th>メモ</th>
+                <th>岩盤鉱脈</th>
                 <th>視認済み</th>
                 <th>枯渇済み</th>
                 <th>登録日時</th>
@@ -257,6 +265,7 @@ fn generate_veins_table(veins: Vec<VeinWithStatus>, query: &SearchQuery) -> Stri
                 <td>{}</td>
                 <td>{}</td>
                 <td>{}</td>
+                <td>{}</td>
                 <td class="action-buttons">
                     {}
                     {}
@@ -270,6 +279,7 @@ fn generate_veins_table(veins: Vec<VeinWithStatus>, query: &SearchQuery) -> Stri
             vein.z_coord,
             vein.format_y_coord(),
             vein.format_notes(),
+            vein.is_bedrock_symbol(),
             vein.confirmed_symbol(),
             vein.depleted_symbol(),
             vein.format_created_at(),

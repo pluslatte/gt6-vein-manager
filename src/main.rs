@@ -14,7 +14,7 @@ use crate::handlers::{
     add_vein_handler, login_handler, login_page, logout_handler, me_handler, register_handler,
     register_page, require_auth, search_veins_handler, serve_css, serve_index,
     vein_confirmation_revoke, vein_confirmation_set, vein_depletion_revoke, vein_depletion_set,
-    vein_revocation_revoke, vein_revocation_set,
+    vein_is_bedrock_revoke, vein_is_bedrock_set, vein_revocation_revoke, vein_revocation_set,
 };
 use crate::{
     auth::{AuthBackend, DieselSessionStore, SESSION_DURATION_DAYS},
@@ -85,6 +85,11 @@ async fn main() -> anyhow::Result<()> {
                 .route(
                     "/veins/{vein_id}/revocation/revoke",
                     post(vein_revocation_revoke),
+                )
+                .route("/veins/{vein_id}/is_bedrock/set", post(vein_is_bedrock_set))
+                .route(
+                    "/veins/{vein_id}/is_bedrock/revoke",
+                    post(vein_is_bedrock_revoke),
                 )
                 .route("/veins/add", post(add_vein_handler))
                 .layer(middleware::from_fn(require_auth)),

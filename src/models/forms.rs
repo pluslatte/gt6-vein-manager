@@ -45,6 +45,7 @@ pub struct AddVeinForm {
     pub notes: Option<String>,
     pub confirmed: Option<bool>,
     pub depleted: Option<bool>,
+    pub bedrock: Option<bool>,
 }
 
 impl AddVeinForm {
@@ -70,5 +71,9 @@ impl AddVeinForm {
 
     pub fn is_depleted(&self) -> bool {
         self.depleted.unwrap_or(false)
+    }
+
+    pub fn is_bedrock(&self) -> bool {
+        self.bedrock.unwrap_or(false)
     }
 }
