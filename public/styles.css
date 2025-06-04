@@ -65,6 +65,12 @@ h2 {
     padding-bottom: 8px;
 }
 
+a {
+    color: var(--blue);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
 /* フォーム関連 */
 .search-form {
     display: flex;
@@ -175,11 +181,11 @@ button.danger {
     color: var(--fg0);
 }
 
-button:hover {
+button.danger:hover {
     background-color: var(--red);
 }
 
-button:active {
+button.danger:active {
     transform: translateY(1px);
 }
 

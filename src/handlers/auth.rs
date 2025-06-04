@@ -315,7 +315,26 @@ pub async fn issue_invitation(
     let invitation_url = format!("{}/auth/register?token={}", base_url, invitation.token);
 
     Ok(Html(format!(
-        r#"<p>招待リンクが生成されました: <a href="{}">{}</a></p>"#,
+        r#"
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GT6 Vein Manager - アカウント作成</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <p>招待リンクが生成されました: <a href="{}">{}</a></p>
+        <p>このリンクを招待したユーザーに送信してください。</p>
+        <p>リンクの有効期限は8時間です。</p>
+        <div class="nav-links">
+            <a href="/">ホーム</a>
+        </div>
+    </div>
+</body>
+</html>
+"#,
         invitation_url, invitation_url
     )))
 }
