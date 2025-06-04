@@ -7,8 +7,7 @@ CREATE TABLE user (
     is_admin BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    invited_by CHAR(36),
+    invited_by VARCHAR(255),
     INDEX idx_username (username),
     INDEX idx_email (email),
-    FOREIGN KEY (invited_by) REFERENCES user(id) ON DELETE SET NULL
 );
