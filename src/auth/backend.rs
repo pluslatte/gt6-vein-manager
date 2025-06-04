@@ -77,15 +77,15 @@ impl AuthBackend {
             // 環境変数からサーバーURLを取得（デフォルトはlocalhost:24528）
             let server_port = std::env::var("PORT").unwrap_or_else(|_| {
                 eprintln!("PORT environment variable not set, using default port 24528");
-                return "24528".to_string();
+                "24528".to_string()
             });
             let server_host = std::env::var("HOST").unwrap_or_else(|_| {
                 eprintln!("HOST environment variable not set, using default localhost");
-                return "localhost".to_string();
+                "localhost".to_string()
             });
             let server_protocol = std::env::var("PROTOCOL").unwrap_or_else(|_| {
                 eprintln!("PROTOCOL environment variable not set, using default http");
-                return "http".to_string();
+                "http".to_string()
             });
             let base_url = format!("{}://{}:{}", server_protocol, server_host, server_port);
 
