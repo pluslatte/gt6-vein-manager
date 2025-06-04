@@ -48,7 +48,6 @@ pub struct RegisterForm {
 #[derive(Debug, Deserialize)]
 pub struct InviteForm {
     pub email: Option<String>,
-    pub expires_hours: Option<u32>, // デフォルト8時間
 }
 
 // 招待リンクのレスポンス

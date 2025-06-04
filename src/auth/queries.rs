@@ -32,7 +32,7 @@ impl AuthQueries {
         let invitation_id = Uuid::new_v4().to_string();
         let token = Uuid::new_v4().to_string();
         let now = Utc::now().naive_utc();
-        let expires_at = now + Duration::hours(24 * INVITATION_DURATION_HOURS); // 7 days
+        let expires_at = now + Duration::hours((24 * INVITATION_DURATION_HOURS).into()); // 7 days
 
         // Insert the invitation into the database
         diesel::insert_into(invitation::table)
@@ -142,7 +142,7 @@ impl AuthQueries {
         let invitation_id = Uuid::new_v4().to_string();
         let token = Uuid::new_v4().to_string();
         let now = Utc::now().naive_utc();
-        let expires_at = now + Duration::hours(24 * INVITATION_DURATION_HOURS); // 7 days
+        let expires_at = now + Duration::hours((24 * INVITATION_DURATION_HOURS).into()); // 7 days
 
         diesel::insert_into(invitation::table)
             .values((

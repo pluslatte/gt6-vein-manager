@@ -283,6 +283,34 @@ fn generate_veins_table(veins: Vec<VeinWithStatus>, query: &SearchQuery) -> Stri
     html
 }
 
+pub async fn issue_invitation_html() -> Html<&'static str> {
+    Html(
+        r#"
+        <!DOCTYPE html>
+        <html lang="ja">
+        <head>
+            <meta charset="UTF-8">
+            <title>招待リンク発行</title>
+            <link rel="stylesheet" href="/styles.css">
+        </head>
+        <body>
+            <div class="container">
+                <h1>招待リンク発行</h1>
+                <p>招待リンクを発行するには、以下のボタンをクリックしてください。</p>
+                <form method="post" action="/auth/issue-invitation">
+                    <input type="email" name="email" placeholder="あなたのメールアドレス">
+                    <button type="submit">招待リンクを発行</button>
+                </form>
+                <div class="nav-links">
+                    <a href="/">戻る</a>
+                </div>
+            </div>
+        </body>
+        </html>
+        "#,
+    )
+}
+
 fn generate_coord_error_html(coord_name: &str) -> String {
     format!(
         r#"

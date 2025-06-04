@@ -4,7 +4,7 @@ use bcrypt::{DEFAULT_COST, hash, verify};
 // パスワード関連の定数
 pub const MIN_PASSWORD_LENGTH: usize = 8;
 pub const SESSION_DURATION_DAYS: i64 = 7;
-pub const INVITATION_DURATION_HOURS: i64 = 8;
+pub const INVITATION_DURATION_HOURS: u32 = 8;
 
 /// パスワードをハッシュ化
 pub fn hash_password(password: &str) -> Result<String> {

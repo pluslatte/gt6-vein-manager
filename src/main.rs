@@ -10,15 +10,18 @@ use axum::{
 use axum_login::AuthManagerLayerBuilder;
 use tower_sessions::{Expiry, SessionManagerLayer, cookie::time::Duration};
 
-use crate::auth::{AuthBackend, DieselSessionStore, SESSION_DURATION_DAYS};
-use crate::database::AppState;
-use crate::database::create_diesel_pool;
 use crate::handlers::{
     add_vein_handler, login_handler, login_page, logout_handler, me_handler, register_handler,
     register_page, require_auth, search_veins_handler, serve_css, serve_index,
     vein_confirmation_revoke, vein_confirmation_set, vein_depletion_revoke, vein_depletion_set,
     vein_revocation_revoke, vein_revocation_set,
 };
+use crate::{
+    auth::{AuthBackend, DieselSessionStore, SESSION_DURATION_DAYS},
+    handlers::issue_invitation,
+};
+use crate::{database::AppState, handlers::issue_invitation_html};
+use crate::{database::create_diesel_pool, handlers::require_admin};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -47,11 +50,20 @@ async fn main() -> anyhow::Result<()> {
     let auth_layer = AuthManagerLayerBuilder::new(auth_backend, session_layer.clone()).build();
 
     let app = Router::new()
-        .route("/auth/login", get(login_page))
-        .route("/auth/login", post(login_handler))
-        .route("/auth/logout", post(logout_handler))
-        .route("/auth/register", get(register_page))
-        .route("/auth/register", post(register_handler))
+        .nest(
+            "/auth",
+            Router::new()
+                .route("/login", get(login_page))
+                .route("/login", post(login_handler))
+                .route("/logout", post(logout_handler))
+                .route("/register", get(register_page))
+                .route("/register", post(register_handler))
+                .route(
+                    "/issue-invitation",
+                    post(issue_invitation).layer(middleware::from_fn(require_admin)),
+                )
+                .route("/issue-invitation", get(issue_invitation_html)),
+        )
         .nest(
             "/api",
             Router::new()

@@ -12,7 +12,7 @@ use serde::Deserialize;
 use crate::{
     auth::{AuthQueries, AuthSession, Credentials},
     database::AppState,
-    models::{LoginForm, RegisterForm, UserResponse},
+    models::{InviteForm, LoginForm, RegisterForm, UserResponse},
 };
 
 // ログインページ表示
@@ -271,6 +271,53 @@ pub async fn me_handler(auth_session: AuthSession) -> Result<Json<UserResponse>,
         Some(user) => Ok(Json(user.into())),
         None => Err(StatusCode::UNAUTHORIZED),
     }
+}
+
+pub async fn issue_invitation(
+    State(state): State<AppState>,
+    Form(form): Form<InviteForm>,
+) -> Result<Html<String>, (StatusCode, String)> {
+    // データベース接続の取得
+    let mut connection = state.diesel_pool.get().await.map_err(|e| {
+        eprintln!("Failed to get database connection: {}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("データベース接続エラー: {}", e),
+        )
+    })?;
+    let connection = connection.deref_mut();
+
+    // 環境変数からサーバーURLを取得（デフォルトはlocalhost:24528）
+    let server_port = std::env::var("PORT").unwrap_or_else(|_| {
+        eprintln!("PORT environment variable not set, using default port 24528");
+        "24528".to_string()
+    });
+    let server_host = std::env::var("HOST").unwrap_or_else(|_| {
+        eprintln!("HOST environment variable not set, using default localhost");
+        "localhost".to_string()
+    });
+    let server_protocol = std::env::var("PROTOCOL").unwrap_or_else(|_| {
+        eprintln!("PROTOCOL environment variable not set, using default http");
+        "http".to_string()
+    });
+    let base_url = format!("{}://{}:{}", server_protocol, server_host, server_port);
+
+    // 招待の保存
+    let invitation = AuthQueries::create_invitation(
+        connection,
+        form.email.as_deref(),
+        form.email.as_deref().unwrap_or("user"),
+    )
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    // 招待リンクの生成
+    let invitation_url = format!("{}/auth/register?token={}", base_url, invitation.token);
+
+    Ok(Html(format!(
+        r#"<p>招待リンクが生成されました: <a href="{}">{}</a></p>"#,
+        invitation_url, invitation_url
+    )))
 }
 
 // 認証確認用ミドルウェア
