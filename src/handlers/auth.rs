@@ -173,6 +173,11 @@ pub async fn register_handler(
 ) -> Result<Redirect, (StatusCode, String)> {
     use crate::auth::utils::{validate_password, validate_username};
 
+    println!(
+        "Attempting to register user with username: {}",
+        &form.username
+    );
+
     // データベース接続の取得
     let mut connection = state.diesel_pool.get().await.map_err(|e| {
         eprintln!("Failed to get database connection: {}", e);
@@ -262,6 +267,10 @@ pub async fn register_handler(
             )
         })?;
 
+    println!(
+        "User registered successfully: {}, with id: {}",
+        user.username, user.id
+    );
     Ok(Redirect::to("/auth/login"))
 }
 

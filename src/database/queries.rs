@@ -166,6 +166,10 @@ pub async fn insert_vein(
     z_coord: i32,
     notes: &Option<String>,
 ) -> QueryResult<usize> {
+    println!(
+        "Attempting to insert vein: id={}, name={}, x_coord={}, y_coord={:?}, z_coord={}",
+        id, name, x_coord, y_coord, z_coord
+    );
     insert_into(vein::table)
         .values((
             vein::id.eq(id),
@@ -183,6 +187,10 @@ pub async fn insert_vein_note(
     vein_id: &str,
     note: &str,
 ) -> QueryResult<usize> {
+    println!(
+        "Attempting to insert vein note: vein_id={}, note={}",
+        vein_id, note
+    );
     insert_into(vein_note::table)
         .values((
             vein_note::id.eq(Uuid::new_v4().to_string()),
@@ -198,6 +206,10 @@ pub async fn insert_vein_confirmation(
     vein_id: &str,
     confirmed: bool,
 ) -> QueryResult<usize> {
+    println!(
+        "Attempting to insert vein confirmation: vein_id={}, confirmed={}",
+        vein_id, confirmed
+    );
     insert_into(vein_confirmation::table)
         .values((
             vein_confirmation::id.eq(Uuid::new_v4().to_string()),
@@ -213,6 +225,10 @@ pub async fn insert_vein_depletion(
     vein_id: &str,
     depleted: bool,
 ) -> QueryResult<usize> {
+    println!(
+        "Attempting to insert vein depletion: vein_id={}, depleted={}",
+        vein_id, depleted
+    );
     insert_into(vein_depletion::table)
         .values((
             vein_depletion::id.eq(Uuid::new_v4().to_string()),
@@ -228,6 +244,10 @@ pub async fn insert_vein_revocation(
     vein_id: &str,
     revoked: bool,
 ) -> QueryResult<usize> {
+    println!(
+        "Attempting to insert vein revocation: vein_id={}, revoked={}",
+        vein_id, revoked
+    );
     insert_into(vein_revocation::table)
         .values((
             vein_revocation::id.eq(Uuid::new_v4().to_string()),

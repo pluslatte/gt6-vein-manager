@@ -27,8 +27,9 @@ impl AuthQueries {
     /// 管理者用の初期招待を作成（システム起動時用）
     pub async fn create_system_invitation(
         connection: &mut AsyncMysqlConnection,
-        email: Option<&str>,
     ) -> Result<Invitation, diesel::result::Error> {
+        println!("Creating system invitation...");
+
         let invitation_id = Uuid::new_v4().to_string();
         let token = Uuid::new_v4().to_string();
         let now = Utc::now().naive_utc();
@@ -38,7 +39,7 @@ impl AuthQueries {
         diesel::insert_into(invitation::table)
             .values((
                 invitation::id.eq(&invitation_id),
-                invitation::email.eq(email),
+                invitation::email.eq(None::<String>), // System invitation, so NULL
                 invitation::token.eq(&token),
                 invitation::invited_by.eq::<Option<String>>(None), // System invitation, so NULL
                 invitation::expires_at.eq(expires_at),
@@ -47,10 +48,11 @@ impl AuthQueries {
             .execute(connection)
             .await?;
 
+        println!("System invitation created: {}", invitation_id);
         // Return the created invitation
         Ok(Invitation {
             id: invitation_id,
-            email: email.map(|s| s.to_string()),
+            email: None,
             token,
             invited_by: None,
             expires_at,
@@ -139,6 +141,7 @@ impl AuthQueries {
         email: Option<&str>,
         invited_by: Option<&str>,
     ) -> Result<Invitation, diesel::result::Error> {
+        println!("Attempting to create invitation");
         let invitation_id = Uuid::new_v4().to_string();
         let token = Uuid::new_v4().to_string();
         let now = Utc::now().naive_utc();
@@ -150,7 +153,7 @@ impl AuthQueries {
                 .to_string(),
         );
 
-        diesel::insert_into(invitation::table)
+        if let Err(e) = diesel::insert_into(invitation::table)
             .values((
                 invitation::id.eq(&invitation_id),
                 invitation::email.eq(email),
@@ -160,7 +163,11 @@ impl AuthQueries {
                 invitation::created_at.eq(now),
             ))
             .execute(connection)
-            .await?;
+            .await
+        {
+            eprintln!("Failed to create invitation: {:?}", e);
+            return Err(e);
+        }
 
         let invitation = Invitation {
             id: invitation_id,
@@ -173,6 +180,10 @@ impl AuthQueries {
             created_at: Some(now),
         };
 
+        println!(
+            "Invitation created: {}, expires at: {}",
+            invitation.id, invitation.expires_at
+        );
         Ok(invitation)
     }
 

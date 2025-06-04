@@ -90,7 +90,7 @@ impl AuthBackend {
             let base_url = format!("{}://{}:{}", server_protocol, server_host, server_port);
 
             // システム初期招待を作成
-            match AuthQueries::create_system_invitation(&mut connection, None).await {
+            match AuthQueries::create_system_invitation(&mut connection).await {
                 Ok(invitation) => {
                     let invitation_url =
                         format!("{}/auth/register?token={}", base_url, invitation.token);

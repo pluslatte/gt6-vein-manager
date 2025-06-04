@@ -49,8 +49,30 @@ async fn handle_vein_action(
     };
 
     match result {
-        Ok(_) => Ok(Redirect::to(&form.build_redirect_url())),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+        Ok(_) => {
+            println!(
+                "Vein action '{}' for vein ID '{}' was successful.",
+                match action {
+                    Action::Confirmation => "Confirmation",
+                    Action::Depletion => "Depletion",
+                    Action::Revocation => "Revocation",
+                },
+                vein_id
+            );
+            Ok(Redirect::to(&form.build_redirect_url()))
+        }
+        Err(_) => {
+            eprintln!(
+                "Failed to perform action '{}' for vein ID '{}'.",
+                match action {
+                    Action::Confirmation => "Confirmation",
+                    Action::Depletion => "Depletion",
+                    Action::Revocation => "Revocation",
+                },
+                vein_id
+            );
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
     }
 }
 
@@ -61,7 +83,10 @@ macro_rules! define_vein_action {
             Path(vein_id): Path<String>,
             Form(form): Form<VeinButtonForm>,
         ) -> Result<Redirect, StatusCode> {
-            let mut connection = state.diesel_pool.get().await
+            let mut connection = state
+                .diesel_pool
+                .get()
+                .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
             handle_vein_action(state, vein_id, form, &mut connection, $action, $status).await
         }
