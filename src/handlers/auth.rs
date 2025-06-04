@@ -303,13 +303,10 @@ pub async fn issue_invitation(
     let base_url = format!("{}://{}:{}", server_protocol, server_host, server_port);
 
     // 招待の保存
-    let invitation = AuthQueries::create_invitation(
-        connection,
-        form.email.as_deref(),
-        form.email.as_deref().unwrap_or("user"),
-    )
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    let invitation =
+        AuthQueries::create_invitation(connection, form.email.as_deref(), form.email.as_deref())
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     // 招待リンクの生成
     let invitation_url = format!("{}/auth/register?token={}", base_url, invitation.token);

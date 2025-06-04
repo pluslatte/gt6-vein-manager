@@ -137,19 +137,25 @@ impl AuthQueries {
     pub async fn create_invitation(
         connection: &mut AsyncMysqlConnection,
         email: Option<&str>,
-        invited_by: &str,
+        invited_by: Option<&str>,
     ) -> Result<Invitation, diesel::result::Error> {
         let invitation_id = Uuid::new_v4().to_string();
         let token = Uuid::new_v4().to_string();
         let now = Utc::now().naive_utc();
         let expires_at = now + Duration::hours((24 * INVITATION_DURATION_HOURS).into()); // 7 days
+        let invited_by = Some(
+            invited_by
+                .filter(|s| !s.is_empty())
+                .unwrap_or("anonymous")
+                .to_string(),
+        );
 
         diesel::insert_into(invitation::table)
             .values((
                 invitation::id.eq(&invitation_id),
                 invitation::email.eq(email),
                 invitation::token.eq(&token),
-                invitation::invited_by.eq(invited_by),
+                invitation::invited_by.eq(invited_by.as_deref()),
                 invitation::expires_at.eq(expires_at),
                 invitation::created_at.eq(now),
             ))
@@ -160,7 +166,7 @@ impl AuthQueries {
             id: invitation_id,
             email: email.map(|s| s.to_string()),
             token,
-            invited_by: Some(invited_by.to_string()),
+            invited_by,
             expires_at,
             used_at: None,
             used_by: None,
