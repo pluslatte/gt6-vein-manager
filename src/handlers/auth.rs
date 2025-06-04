@@ -188,7 +188,6 @@ pub async fn register_handler(
     })?;
     let connection = connection.deref_mut();
 
-    println!("Registering user attempt with username: {}", &form.username);
     // バリデーション
     if let Err(e) = validate_username(&form.username) {
         eprintln!("Username validation failed: {}", e);

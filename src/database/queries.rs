@@ -170,7 +170,7 @@ pub async fn insert_vein(
         "Attempting to insert vein: id={}, name={}, x_coord={}, y_coord={:?}, z_coord={}",
         id, name, x_coord, y_coord, z_coord
     );
-    insert_into(vein::table)
+    let result = insert_into(vein::table)
         .values((
             vein::id.eq(id),
             vein::name.eq(name),
@@ -179,7 +179,23 @@ pub async fn insert_vein(
             vein::z_coord.eq(z_coord),
         ))
         .execute(connection)
-        .await
+        .await;
+
+    match result {
+        Ok(count) => {
+            if let Some(note) = notes {
+                if !note.is_empty() {
+                    insert_vein_note(connection, id, note).await?;
+                }
+            }
+            println!("Successfully inserted vein: id={}, count={}", id, count);
+            Ok(count)
+        }
+        Err(e) => {
+            eprintln!("Failed to insert vein: id={}, error={}", id, e);
+            Err(e)
+        }
+    }
 }
 
 pub async fn insert_vein_note(
@@ -191,14 +207,31 @@ pub async fn insert_vein_note(
         "Attempting to insert vein note: vein_id={}, note={}",
         vein_id, note
     );
-    insert_into(vein_note::table)
+    let result = insert_into(vein_note::table)
         .values((
             vein_note::id.eq(Uuid::new_v4().to_string()),
             vein_note::vein_id.eq(vein_id),
             vein_note::note.eq(note),
         ))
         .execute(connection)
-        .await
+        .await;
+
+    match result {
+        Ok(count) => {
+            println!(
+                "Successfully inserted vein note: vein_id={}, note={}, count={}",
+                vein_id, note, count
+            );
+            Ok(count)
+        }
+        Err(e) => {
+            eprintln!(
+                "Failed to insert vein note: vein_id={}, note={}, error={}",
+                vein_id, note, e
+            );
+            Err(e)
+        }
+    }
 }
 
 pub async fn insert_vein_confirmation(
@@ -210,14 +243,31 @@ pub async fn insert_vein_confirmation(
         "Attempting to insert vein confirmation: vein_id={}, confirmed={}",
         vein_id, confirmed
     );
-    insert_into(vein_confirmation::table)
+    let result = insert_into(vein_confirmation::table)
         .values((
             vein_confirmation::id.eq(Uuid::new_v4().to_string()),
             vein_confirmation::vein_id.eq(vein_id),
             vein_confirmation::confirmed.eq(confirmed),
         ))
         .execute(connection)
-        .await
+        .await;
+
+    match result {
+        Ok(count) => {
+            println!(
+                "Successfully inserted vein confirmation: vein_id={}, confirmed={}, count={}",
+                vein_id, confirmed, count
+            );
+            Ok(count)
+        }
+        Err(e) => {
+            eprintln!(
+                "Failed to insert vein confirmation: vein_id={}, confirmed={}, error={}",
+                vein_id, confirmed, e
+            );
+            Err(e)
+        }
+    }
 }
 
 pub async fn insert_vein_depletion(
@@ -229,14 +279,31 @@ pub async fn insert_vein_depletion(
         "Attempting to insert vein depletion: vein_id={}, depleted={}",
         vein_id, depleted
     );
-    insert_into(vein_depletion::table)
+    let result = insert_into(vein_depletion::table)
         .values((
             vein_depletion::id.eq(Uuid::new_v4().to_string()),
             vein_depletion::vein_id.eq(vein_id),
             vein_depletion::depleted.eq(depleted),
         ))
         .execute(connection)
-        .await
+        .await;
+
+    match result {
+        Ok(count) => {
+            println!(
+                "Successfully inserted vein depletion: vein_id={}, depleted={}, count={}",
+                vein_id, depleted, count
+            );
+            Ok(count)
+        }
+        Err(e) => {
+            eprintln!(
+                "Failed to insert vein depletion: vein_id={}, depleted={}, error={}",
+                vein_id, depleted, e
+            );
+            Err(e)
+        }
+    }
 }
 
 pub async fn insert_vein_revocation(
@@ -248,12 +315,29 @@ pub async fn insert_vein_revocation(
         "Attempting to insert vein revocation: vein_id={}, revoked={}",
         vein_id, revoked
     );
-    insert_into(vein_revocation::table)
+    let result = insert_into(vein_revocation::table)
         .values((
             vein_revocation::id.eq(Uuid::new_v4().to_string()),
             vein_revocation::vein_id.eq(vein_id),
             vein_revocation::revoked.eq(revoked),
         ))
         .execute(connection)
-        .await
+        .await;
+
+    match result {
+        Ok(count) => {
+            println!(
+                "Successfully inserted vein revocation: vein_id={}, revoked={}, count={}",
+                vein_id, revoked, count
+            );
+            Ok(count)
+        }
+        Err(e) => {
+            eprintln!(
+                "Failed to insert vein revocation: vein_id={}, revoked={}, error={}",
+                vein_id, revoked, e
+            );
+            Err(e)
+        }
+    }
 }
