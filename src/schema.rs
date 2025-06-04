@@ -8,8 +8,8 @@ diesel::table! {
         email -> Nullable<Varchar>,
         #[max_length = 36]
         token -> Char,
-        #[max_length = 36]
-        invited_by -> Nullable<Char>,
+        #[max_length = 255]
+        invited_by -> Nullable<Varchar>,
         expires_at -> Timestamp,
         used_at -> Nullable<Timestamp>,
         #[max_length = 36]
@@ -40,8 +40,8 @@ diesel::table! {
         is_admin -> Nullable<Bool>,
         is_active -> Nullable<Bool>,
         created_at -> Nullable<Timestamp>,
-        #[max_length = 36]
-        invited_by -> Nullable<Char>,
+        #[max_length = 255]
+        invited_by -> Nullable<Varchar>,
     }
 }
 
