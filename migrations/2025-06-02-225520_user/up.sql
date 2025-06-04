@@ -9,5 +9,5 @@ CREATE TABLE user (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     invited_by VARCHAR(255),
     INDEX idx_username (username),
-    INDEX idx_email (email),
+    INDEX idx_email (email)
 );
