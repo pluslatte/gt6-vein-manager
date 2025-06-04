@@ -64,25 +64,35 @@ pub async fn login_handler(
         password: form.password.clone(),
     };
 
+    println!("Login attempt with username: {}", creds.username);
+
     match auth_session.authenticate(creds).await {
         Ok(Some(user)) => {
             auth_session.login(&user).await.map_err(|e| {
+                eprintln!("Login internally failed for user {}: {}", user.username, e);
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     format!("ログインに失敗しました: {}", e),
                 )
             })?;
 
+            println!("User {} logged in successfully", user.username);
             Ok(Redirect::to("/"))
         }
-        Ok(None) => Err((
-            StatusCode::UNAUTHORIZED,
-            "ユーザー名またはパスワードが正しくありません".to_string(),
-        )),
-        Err(e) => Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            format!("認証エラー: {}", e),
-        )),
+        Ok(None) => {
+            println!("Login attempt was invalid for username: {}", form.username);
+            Err((
+                StatusCode::UNAUTHORIZED,
+                "ユーザー名またはパスワードが正しくありません".to_string(),
+            ))
+        }
+        Err(e) => {
+            eprintln!("Authentication error for username {}: {}", form.username, e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("認証エラー: {}", e),
+            ))
+        }
     }
 }
 
