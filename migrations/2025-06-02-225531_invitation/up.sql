@@ -10,6 +10,5 @@ CREATE TABLE invitation (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_token (token),
     INDEX idx_email (email),
-    FOREIGN KEY (invited_by) REFERENCES user(id) ON DELETE CASCADE,
     FOREIGN KEY (used_by) REFERENCES user(id) ON DELETE SET NULL
 );

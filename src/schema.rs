@@ -114,6 +114,7 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(invitation -> user (used_by));
 diesel::joinable!(vein_confirmation -> vein (vein_id));
 diesel::joinable!(vein_depletion -> vein (vein_id));
 diesel::joinable!(vein_is_bedrock -> vein (vein_id));
