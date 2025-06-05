@@ -19,6 +19,8 @@ pub struct DieselSessionStore {
     pool: DbPool,
 }
 
+// Implementing Debug for requirements in tower-sessions (maybe)
+// I don't know why it's needed and whether it's actually required...
 impl std::fmt::Debug for DieselSessionStore {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DieselSessionStore")
@@ -47,7 +49,7 @@ impl SessionStore for DieselSessionStore {
         loop {
             let session_id_str = record.id.to_string();
 
-            // Check if the session ID already exists
+            // To check if the session ID already exists
             let existing_session: Option<Session> = sessions::table
                 .filter(sessions::id.eq(&session_id_str))
                 .first(&mut connection)
@@ -58,14 +60,12 @@ impl SessionStore for DieselSessionStore {
                 })?;
 
             if existing_session.is_none() {
-                // Create a new session object
                 let new_session = NewSession {
                     id: session_id_str,
                     data: data_str,
                     expiry_date: expiry_naive,
                 };
 
-                // Insert new session
                 diesel::insert_into(sessions::table)
                     .values(new_session)
                     .execute(&mut connection)
@@ -76,7 +76,7 @@ impl SessionStore for DieselSessionStore {
 
                 return Ok(());
             } else {
-                // If the session ID already exists, generate a new one
+                // To avoid duplicate session IDs
                 record.id = Id::default();
             }
         }
@@ -101,9 +101,8 @@ impl SessionStore for DieselSessionStore {
                 session_store::Error::Backend(format!("Failed to check session: {}", e))
             })?;
 
-        // Insert or update the session in the database
+        // Need to change operation based on whether the session exists
         if existing_session.is_some() {
-            // Update existing session
             diesel::update(sessions::table.filter(sessions::id.eq(&session_id_str)))
                 .set((
                     sessions::data.eq(data_str),
@@ -115,14 +114,12 @@ impl SessionStore for DieselSessionStore {
                     session_store::Error::Backend(format!("Failed to update session: {}", e))
                 })?;
         } else {
-            // Create a new session object
             let new_session = NewSession {
                 id: session_id_str,
                 data: data_str,
                 expiry_date: expiry_naive,
             };
 
-            // Insert new session
             diesel::insert_into(sessions::table)
                 .values(new_session)
                 .execute(&mut connection)
@@ -142,7 +139,7 @@ impl SessionStore for DieselSessionStore {
 
         let session_id_str = id.to_string();
 
-        // Search the session from the database
+        // Need to check if the session exists with given ID
         let session: Option<Session> = sessions::table
             .filter(sessions::id.eq(&session_id_str))
             .first(&mut connection)
@@ -152,24 +149,23 @@ impl SessionStore for DieselSessionStore {
 
         match session {
             Some(session) => {
-                // check if the session has expired
+                // Because tower-sessions expects the expiry date in UTC OffsetDateTime
                 let expiry_offset = naive_datetime_to_offset(session.expiry_date);
                 if expiry_offset < time::OffsetDateTime::now_utc() {
-                    // Session has expired
                     self.delete(id).await?;
                     return Ok(None);
                 }
 
-                // Deserialize the session data
                 let data = deserialize_session_data(&session.data)?;
 
-                // Create the Record object
+                // Session store expects a Record with an ID, data, and expiry date
                 Ok(Some(Record {
                     id: *id,
                     data,
                     expiry_date: expiry_offset,
                 }))
             }
+            // None means the session does not exist
             None => Ok(None),
         }
     }
@@ -181,7 +177,6 @@ impl SessionStore for DieselSessionStore {
 
         let session_id_str = id.to_string();
 
-        // Delete the session from the database
         diesel::delete(sessions::table)
             .filter(sessions::id.eq(session_id_str))
             .execute(&mut connection)
@@ -190,7 +185,6 @@ impl SessionStore for DieselSessionStore {
                 session_store::Error::Backend(format!("Failed to delete session: {}", e))
             })?;
 
-        // If the session was deleted successfully, return Ok
         Ok(())
     }
 }
