@@ -5,7 +5,7 @@ use std::fmt;
 
 use crate::models::User;
 
-// カスタムエラー型の定義
+// Because authenticate function potentially returns multiple types of errors.
 #[derive(Debug)]
 pub enum AuthError {
     Database(diesel::result::Error),
@@ -25,7 +25,6 @@ impl fmt::Display for AuthError {
 
 impl std::error::Error for AuthError {}
 
-// エラー型変換の実装
 impl From<diesel::result::Error> for AuthError {
     fn from(error: diesel::result::Error) -> Self {
         AuthError::Database(error)
@@ -38,7 +37,8 @@ impl From<diesel_async::pooled_connection::deadpool::PoolError> for AuthError {
     }
 }
 
-// axum-login用のユーザー実装
+// For axum_login
+// axum requires the User type to implement AuthUser trait
 impl AuthUser for User {
     type Id = String;
 
@@ -62,19 +62,23 @@ impl AuthBackend {
         Self { db }
     }
 
+    /// This function has multiple purposes. I don't think this is a good design, but it works for now.
     pub async fn check_users_and_generate_invitation(&self) -> anyhow::Result<()> {
         use crate::auth::queries::AuthQueries;
 
         let mut connection = self.db.get().await?;
-        // アクティブユーザーが存在するかチェック
+
         let has_users = AuthQueries::has_any_users(&mut connection).await?;
+
+        // Changes behavior based on whether users already exist
+        // To do initial setup, mainly for generating an admin invitation link
 
         if !has_users {
             println!("\n=== GT6 Vein Manager 初期セットアップ ===");
             println!("システムにユーザーが登録されていません。");
             println!("管理者用の招待リンクを生成します...\n");
 
-            // 環境変数からサーバーURLを取得（デフォルトはlocalhost:24528）
+            // In case the environment variables are not set
             let server_port = std::env::var("PORT").unwrap_or_else(|_| {
                 eprintln!("PORT environment variable not set, using default port 24528");
                 "24528".to_string()
@@ -89,7 +93,6 @@ impl AuthBackend {
             });
             let base_url = format!("{}://{}:{}", server_protocol, server_host, server_port);
 
-            // システム初期招待を作成
             match AuthQueries::create_system_invitation(&mut connection).await {
                 Ok(invitation) => {
                     let invitation_url =
@@ -164,5 +167,5 @@ impl AuthnBackend for AuthBackend {
     }
 }
 
-// セッション層用の型エイリアス
+// For session layer
 pub type AuthSession = axum_login::AuthSession<AuthBackend>;

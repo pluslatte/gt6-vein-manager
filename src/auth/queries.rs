@@ -35,7 +35,6 @@ impl AuthQueries {
         let now = Utc::now().naive_utc();
         let expires_at = now + Duration::hours((24 * INVITATION_DURATION_HOURS).into()); // 7 days
 
-        // Insert the invitation into the database
         diesel::insert_into(invitation::table)
             .values((
                 invitation::id.eq(&invitation_id),
@@ -49,7 +48,7 @@ impl AuthQueries {
             .await?;
 
         println!("System invitation created: {}", invitation_id);
-        // Return the created invitation
+
         Ok(Invitation {
             id: invitation_id,
             email: None,
