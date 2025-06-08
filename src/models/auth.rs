@@ -77,10 +77,7 @@ impl From<User> for UserResponse {
             username: user.username,
             email: user.email,
             is_admin: user.is_admin.unwrap_or(false),
-            created_at: user
-                .created_at
-                .unwrap_or(NaiveDateTime::default())
-                .and_utc(),
+            created_at: user.created_at.unwrap_or_default().and_utc(),
         }
     }
 }
