@@ -1,4 +1,7 @@
-use gt6_vein_manager::{AppConfig, AppState, create_app, create_diesel_pool};
+use gt6_vein_manager::{
+    app::create_app, config::AppConfig, database::connection::AppState,
+    database::connection::create_diesel_pool,
+};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
