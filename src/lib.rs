@@ -10,7 +10,7 @@ pub mod schema;
 // Re-export commonly used items for convenience
 pub use app::create_app;
 pub use config::AppConfig;
-pub use database::{AppState, create_diesel_pool};
+pub use database::connection::{AppState, create_diesel_pool};
 
 // Re-export auth types for external usage
 pub use auth::{AuthBackend, DieselSessionStore, SESSION_DURATION_DAYS};
