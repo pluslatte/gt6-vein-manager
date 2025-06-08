@@ -1,8 +1,9 @@
-use crate::database::{
-    AppState, VeinWithStatus, insert_vein, insert_vein_confirmation, insert_vein_depletion,
+use crate::database::connection::AppState;
+use crate::database::queries::{
+    VeinWithStatus, insert_vein, insert_vein_confirmation, insert_vein_depletion,
     insert_vein_is_bedrock, search_veins,
 };
-use crate::models::{AddVeinForm, SearchQuery};
+use crate::models::forms::{AddVeinForm, SearchQuery};
 use axum::{
     extract::{Form, Query, State},
     http::StatusCode,

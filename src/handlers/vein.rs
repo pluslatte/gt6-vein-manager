@@ -1,6 +1,6 @@
-use crate::database::{
-    AppState, insert_vein_confirmation, insert_vein_depletion, insert_vein_is_bedrock,
-    insert_vein_revocation,
+use crate::database::connection::AppState;
+use crate::database::queries::{
+    insert_vein_confirmation, insert_vein_depletion, insert_vein_is_bedrock, insert_vein_revocation,
 };
 use axum::{
     Form,

@@ -3,7 +3,7 @@ use diesel_async::{AsyncMysqlConnection, pooled_connection::deadpool::Pool};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-use crate::models::User;
+use crate::models::auth::User;
 
 // Because authenticate function potentially returns multiple types of errors.
 #[derive(Debug)]

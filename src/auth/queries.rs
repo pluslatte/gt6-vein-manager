@@ -4,7 +4,7 @@ use diesel_async::{AsyncMysqlConnection, RunQueryDsl};
 use uuid::Uuid;
 
 use crate::auth::utils::{INVITATION_DURATION_HOURS, hash_password};
-use crate::models::{Invitation, User};
+use crate::models::auth::{Invitation, User};
 use crate::schema::*;
 use diesel::dsl::count_star;
 

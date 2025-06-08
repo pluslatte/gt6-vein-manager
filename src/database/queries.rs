@@ -1,4 +1,4 @@
-use crate::models::SearchQuery;
+use crate::models::forms::SearchQuery;
 use crate::schema::*;
 use diesel::{
     ExpressionMethods, OptionalExtension, QueryDsl, QueryResult, SelectableHelper,
@@ -78,8 +78,8 @@ pub async fn search_veins(
     }
 
     // Execute the main query to get veins
-    let veins: Vec<crate::models::Vein> = query
-        .select(crate::models::Vein::as_select())
+    let veins: Vec<crate::models::vein::Vein> = query
+        .select(crate::models::vein::Vein::as_select())
         .load(connection)
         .await?;
 

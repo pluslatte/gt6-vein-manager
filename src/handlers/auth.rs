@@ -10,9 +10,10 @@ use axum::{
 use serde::Deserialize;
 
 use crate::{
-    auth::{AuthQueries, AuthSession, Credentials},
-    database::AppState,
-    models::{InviteForm, LoginForm, RegisterForm, UserResponse},
+    auth::backend::{AuthSession, Credentials},
+    auth::queries::AuthQueries,
+    database::connection::AppState,
+    models::auth::{InviteForm, LoginForm, RegisterForm, UserResponse},
 };
 
 // ログインページ表示

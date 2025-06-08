@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::models::{NewSession, Session};
+use crate::models::sessions::{NewSession, Session};
 use crate::schema::sessions;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;
@@ -11,7 +11,7 @@ use tower_sessions::{
     session_store,
 };
 
-use crate::auth::DbPool;
+use crate::auth::backend::DbPool;
 
 /// A session store implementation using Diesel ORM for database interactions.
 #[derive(Clone)]

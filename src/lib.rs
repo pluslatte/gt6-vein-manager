@@ -12,16 +12,13 @@ pub use app::create_app;
 pub use config::AppConfig;
 pub use database::connection::{AppState, create_diesel_pool};
 
-// Re-export auth types for external usage
-pub use auth::{AuthBackend, DieselSessionStore, SESSION_DURATION_DAYS};
-
 // Common error type
 pub type Result<T> = anyhow::Result<T>;
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_module_exports() {
         // Simple smoke test to ensure modules compile
