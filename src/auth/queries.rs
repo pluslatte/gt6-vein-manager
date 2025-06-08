@@ -5,8 +5,8 @@ use uuid::Uuid;
 
 use crate::auth::utils::{INVITATION_DURATION_HOURS, hash_password};
 use crate::models::{Invitation, User};
+use crate::schema::*;
 use diesel::dsl::count_star;
-use gt6_vein_manager::schema::*;
 
 pub struct AuthQueries;
 

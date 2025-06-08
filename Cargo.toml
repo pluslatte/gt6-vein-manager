@@ -3,6 +3,14 @@ name = "gt6-vein-manager"
 version = "0.1.0"
 edition = "2024"
 
+[lib]
+name = "gt6_vein_manager"
+path = "src/lib.rs"
+
+[[bin]]
+name = "gt6-vein-manager"
+path = "src/main.rs"
+
 [dependencies]
 anyhow = "1.0.98"
 async-trait = "0.1.88"

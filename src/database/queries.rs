@@ -1,10 +1,10 @@
 use crate::models::SearchQuery;
+use crate::schema::*;
 use diesel::{
     ExpressionMethods, OptionalExtension, QueryDsl, QueryResult, SelectableHelper,
     TextExpressionMethods, insert_into,
 };
 use diesel_async::{AsyncMysqlConnection, RunQueryDsl};
-use gt6_vein_manager::schema::*;
 use uuid::Uuid;
 
 pub struct VeinWithStatus {
