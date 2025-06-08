@@ -1,4 +1,3 @@
-// Core modules
 pub mod app;
 pub mod auth;
 pub mod config;
