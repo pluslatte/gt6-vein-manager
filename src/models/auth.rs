@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Queryable, Selectable, Clone, Debug)]
-#[diesel(table_name = gt6_vein_manager::schema::user)]
+#[diesel(table_name = crate::schema::user)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct User {
     pub id: String,
@@ -17,7 +17,7 @@ pub struct User {
 }
 
 #[derive(Queryable, Selectable)]
-#[diesel(table_name = gt6_vein_manager::schema::invitation)]
+#[diesel(table_name = crate::schema::invitation)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Invitation {
     pub id: String,

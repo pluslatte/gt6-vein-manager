@@ -63,12 +63,12 @@ pub async fn search_veins(
     connection: &mut AsyncMysqlConnection,
     search_query: &SearchQuery,
 ) -> QueryResult<Vec<VeinWithStatus>> {
-    use gt6_vein_manager::schema::vein::dsl::*;
-    use gt6_vein_manager::schema::vein_confirmation::dsl as vc_dsl;
-    use gt6_vein_manager::schema::vein_depletion::dsl as vd_dsl;
-    use gt6_vein_manager::schema::vein_is_bedrock::dsl as vb_dsl;
-    use gt6_vein_manager::schema::vein_note::dsl as vn_dsl;
-    use gt6_vein_manager::schema::vein_revocation::dsl as vr_dsl;
+    use crate::schema::vein::dsl::*;
+    use crate::schema::vein_confirmation::dsl as vc_dsl;
+    use crate::schema::vein_depletion::dsl as vd_dsl;
+    use crate::schema::vein_is_bedrock::dsl as vb_dsl;
+    use crate::schema::vein_note::dsl as vn_dsl;
+    use crate::schema::vein_revocation::dsl as vr_dsl;
 
     let mut query = vein.into_boxed();
 

@@ -2,7 +2,7 @@ use chrono::NaiveDateTime;
 use diesel::prelude::*;
 
 #[derive(Queryable, Selectable)]
-#[diesel(table_name = gt6_vein_manager::schema::vein)]
+#[diesel(table_name = crate::schema::vein)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct Vein {
     pub id: String,
@@ -15,7 +15,7 @@ pub struct Vein {
 
 #[derive(Queryable, Selectable)]
 #[diesel(belongs_to(Vein))]
-#[diesel(table_name = gt6_vein_manager::schema::vein_confirmation)]
+#[diesel(table_name = crate::schema::vein_confirmation)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct VeinConfirmation {
     pub id: String,
@@ -26,7 +26,7 @@ pub struct VeinConfirmation {
 
 #[derive(Queryable, Selectable)]
 #[diesel(belongs_to(Vein))]
-#[diesel(table_name = gt6_vein_manager::schema::vein_depletion)]
+#[diesel(table_name = crate::schema::vein_depletion)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct VeinDepletion {
     pub id: String,
@@ -37,7 +37,7 @@ pub struct VeinDepletion {
 
 #[derive(Queryable, Selectable)]
 #[diesel(belongs_to(Vein))]
-#[diesel(table_name = gt6_vein_manager::schema::vein_revocation)]
+#[diesel(table_name = crate::schema::vein_revocation)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct VeinRevocation {
     pub id: String,
@@ -48,7 +48,7 @@ pub struct VeinRevocation {
 
 #[derive(Queryable, Selectable)]
 #[diesel(belongs_to(Vein))]
-#[diesel(table_name = gt6_vein_manager::schema::vein_is_bedrock)]
+#[diesel(table_name = crate::schema::vein_is_bedrock)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct VeinIsBedrock {
     pub id: String,
@@ -59,7 +59,7 @@ pub struct VeinIsBedrock {
 
 #[derive(Queryable, Selectable)]
 #[diesel(belongs_to(Vein))]
-#[diesel(table_name = gt6_vein_manager::schema::vein_note)]
+#[diesel(table_name = crate::schema::vein_note)]
 #[diesel(check_for_backend(diesel::mysql::Mysql))]
 pub struct VeinNote {
     pub id: String,
